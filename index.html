@@ -1,0 +1,3934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Warscroll Companion</title>
+
+<!-- PWA / Add-to-Home-Screen configuration -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12151a">
+
+<!-- iOS-specific: makes "Add to Home Screen" launch as a standalone app
+     with no Safari chrome, and sets the icon/status bar style. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Warscroll">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-startup-image" href="icon-512.png">
+<style>
+  @font-face {
+    font-family: 'Oswald';
+    src: local('Oswald');
+  }
+  :root{
+    --bg-0: #12151a;
+    --bg-1: #191d24;
+    --bg-2: #212630;
+    --line: #2c323d;
+    --gold: #c9a24b;
+    --gold-bright: #e8c877;
+    --text-hi: #eef0f3;
+    --text-md: #a6adba;
+    --text-lo: #6b7280;
+    --danger: #d1584a;
+    --good: #5fae7b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:#0a0c0f;}
+  body{
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: var(--text-hi);
+    display:flex;
+    justify-content:center;
+    padding: 24px 12px;
+  }
+  .phone{
+    width: 390px;
+    max-width: 100%;
+    height: 844px;
+    background: var(--bg-0);
+    border-radius: 46px;
+    border: 10px solid #1c1c1e;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    overflow: hidden;
+    position: relative;
+    display:flex;
+    flex-direction:column;
+  }
+  .notch{
+    position:absolute;
+    top:10px; left:50%; transform:translateX(-50%);
+    width:120px; height:28px;
+    background:#000;
+    border-radius:20px;
+    z-index:50;
+  }
+  .statusbar{
+    height:48px;
+    flex-shrink:0;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    padding: 0 26px 8px 26px;
+    font-size:13px;
+    font-weight:600;
+    color: var(--text-hi);
+    letter-spacing:0.2px;
+  }
+  .screen{
+    flex:1;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    scrollbar-width:none;
+  }
+  .screen::-webkit-scrollbar{display:none;}
+
+  /* Nav header */
+  .navheader{
+    padding: 6px 18px 14px 18px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-1);
+    flex-shrink:0;
+  }
+  .navtitle-row{
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .navtitle{
+    font-family: 'Oswald', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-hi);
+  }
+  .navsub{
+    font-size:11px;
+    color: var(--gold);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top:2px;
+    font-weight:600;
+  }
+  .icon-btn{
+    width:34px;height:34px;
+    border-radius:10px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    color: var(--gold-bright);
+    cursor:pointer;
+    font-size:18px;
+  }
+  .icon-btn:active{ background: #2a3140; }
+
+  /* Points header */
+  .points-header{
+    display:flex; align-items:center; gap:14px;
+    padding: 14px 18px;
+    background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+    border-bottom: 1px solid var(--line);
+    flex-shrink:0;
+  }
+  .points-main{flex:1;}
+  .points-value{
+    font-family:'Oswald', sans-serif;
+    font-size: 26px;
+    font-weight:700;
+    color: var(--text-hi);
+    line-height:1;
+  }
+  .points-value .of{ color: var(--text-lo); font-weight:500; font-size:18px;}
+  .points-remaining{
+    font-size:11px;
+    color: var(--text-md);
+    margin-top:4px;
+    letter-spacing:0.3px;
+  }
+  .points-remaining.over{ color: var(--danger); font-weight:600;}
+  .ring{
+    width:52px;height:52px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    flex-shrink:0;
+  }
+  .ring svg{ transform: rotate(-90deg); }
+  .ring-bg{ stroke: var(--line); }
+  .ring-fg{ stroke: var(--gold); transition: stroke-dashoffset 0.4s ease, stroke 0.3s; }
+  .ring-fg.over{ stroke: var(--danger); }
+
+  /* Validation banner */
+  .validation-banner{
+    background: rgba(209,88,74,0.08);
+    border-bottom: 1px solid rgba(209,88,74,0.25);
+    padding: 10px 18px;
+    flex-shrink:0;
+  }
+  .validation-item{
+    display:flex; align-items:center; gap:8px;
+    font-size:12px;
+    color: #e8a99e;
+    margin: 3px 0;
+  }
+  .validation-item .dot{
+    width:5px;height:5px;border-radius:50%;
+    background: var(--danger); flex-shrink:0;
+  }
+
+  /* List */
+  .list-area{ flex:1; padding: 10px 14px 100px 14px; }
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 80px 30px;
+    text-align:center;
+    color: var(--text-lo);
+  }
+  .empty-state .glyph{
+    font-size:40px; margin-bottom:14px; opacity:0.5;
+  }
+  .empty-state .title{
+    color: var(--text-md); font-size:15px; font-weight:600; margin-bottom:6px;
+  }
+  .empty-state .sub{ font-size:12.5px; line-height:1.5; }
+
+  .entry-card{
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-left: 3px solid transparent;
+    border-radius: 12px;
+    padding: 13px 14px;
+    margin-bottom: 10px;
+    position:relative;
+    transition: transform 0.15s;
+  }
+  .entry-card.general{ border-left-color: var(--gold); }
+  .entry-card:active{ transform: scale(0.98); }
+
+  .entry-top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:12px;
+  }
+  .entry-portrait{
+    width:52px; height:52px;
+    border-radius:10px;
+    flex-shrink:0;
+    background: linear-gradient(160deg, #2a3140, #191d24);
+    border: 1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--gold);
+    position:relative;
+    overflow:hidden;
+  }
+  .entry-portrait.has-photo{ border-color: var(--gold); }
+  .entry-portrait img{ width:100%; height:100%; object-fit:cover; }
+  .entry-portrait svg{ width:26px; height:26px; opacity:0.85; }
+  .entry-portrait .add-photo-badge{
+    position:absolute; bottom:-1px; right:-1px;
+    width:18px; height:18px; border-radius:6px 0 8px 0;
+    background: var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    font-size:10px; color:#1a1508; font-weight:800;
+  }
+  .entry-main{ flex:1; min-width:0; }
+  .entry-name-row{
+    display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  }
+  .entry-name{
+    font-weight:700; font-size:14.5px; color: var(--text-hi);
+  }
+  .general-badge{
+    font-size:9px; font-weight:800; letter-spacing:0.6px;
+    color: #1a1508;
+    background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+    padding: 2px 7px 3px 7px;
+    border-radius: 5px;
+  }
+  .entry-keywords{
+    font-size:10.5px; color: var(--text-lo);
+    margin-top:2px;
+    letter-spacing:0.2px;
+  }
+  .entry-points{
+    font-weight:700; font-size:14px; color: var(--gold-bright);
+    font-variant-numeric: tabular-nums;
+    white-space:nowrap;
+  }
+  .entry-reinforce{
+    font-size:9.5px; color: var(--text-lo); text-align:right; margin-top:2px;
+  }
+
+  .stat-row{
+    display:flex; gap:16px; margin-top:10px;
+    padding-top:10px;
+    border-top: 1px solid var(--line);
+  }
+  .stat-badge{ text-align:center; min-width:28px; }
+  .stat-badge .val{ font-size:13px; font-weight:700; color:var(--text-hi); font-variant-numeric: tabular-nums;}
+  .stat-badge .lbl{ font-size:8.5px; color: var(--text-lo); text-transform:uppercase; letter-spacing:0.5px; margin-top:1px;}
+
+  .entry-actions{
+    display:flex; gap:8px; margin-top:10px;
+  }
+  .mini-btn{
+    flex:1;
+    font-size:11px; font-weight:600;
+    padding: 7px 0;
+    border-radius: 8px;
+    text-align:center;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text-md);
+    cursor:pointer;
+  }
+  .mini-btn.active{
+    background: rgba(201,162,75,0.15);
+    border-color: var(--gold);
+    color: var(--gold-bright);
+  }
+  .mini-btn.danger:active{ background: rgba(209,88,74,0.15); color: var(--danger); }
+
+  /* FAB */
+  .fab{
+    position:absolute;
+    bottom:88px; right:20px;
+    width:56px; height:56px;
+    border-radius:50%;
+    background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 8px 20px rgba(201,162,75,0.35);
+    font-size:26px; color:#1a1508; font-weight:300;
+    cursor:pointer;
+    z-index:20;
+  }
+  .fab:active{ transform: scale(0.94); }
+
+  /* Tab bar */
+  .tabbar{
+    display:flex;
+    border-top: 1px solid var(--line);
+    background: rgba(20,23,29,0.92);
+    backdrop-filter: blur(20px);
+    padding: 8px 0 22px 0;
+    flex-shrink:0;
+  }
+  .tab{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color: var(--text-lo);
+    cursor:pointer;
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:0.2px;
+  }
+  .tab.active{ color: var(--gold-bright); }
+  .tab svg{ width:23px; height:23px; }
+
+  /* Sheet overlay (unit picker / detail) */
+  .sheet-overlay{
+    position:absolute; inset:0;
+    background: rgba(0,0,0,0.5);
+    z-index:100;
+    display:flex; align-items:flex-end;
+    opacity:0; pointer-events:none;
+    transition: opacity 0.25s;
+  }
+  .sheet-overlay.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    background: var(--bg-0);
+    width:100%;
+    max-height: 88%;
+    border-radius: 20px 20px 0 0;
+    display:flex; flex-direction:column;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(.32,.72,0,1);
+    border-top: 1px solid var(--line);
+  }
+  .sheet-overlay.show .sheet{ transform: translateY(0); }
+  .sheet-handle{
+    width:36px;height:4px;background:var(--line);border-radius:2px;
+    margin: 10px auto 4px auto;
+  }
+  .sheet-header{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 18px 14px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sheet-title{ font-family:'Oswald',sans-serif; font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px;}
+  .sheet-close{ color: var(--gold-bright); font-size:14px; font-weight:600; cursor:pointer; }
+  .search-bar{
+    margin: 12px 18px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size:13px;
+    color: var(--text-lo);
+    display:flex; align-items:center; gap:8px;
+  }
+  .sheet-body{ flex:1; overflow-y:auto; padding: 4px 14px 30px 14px; }
+
+  .pick-card{
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 9px;
+    display:flex; justify-content:space-between; align-items:center;
+    cursor:pointer;
+  }
+  .pick-card:active{ background: var(--bg-2); }
+  .pick-name{ font-weight:700; font-size:14px; }
+  .pick-sub{ font-size:10.5px; color: var(--text-lo); margin-top:2px; }
+  .pick-pts{ font-weight:700; color: var(--gold-bright); font-size:13.5px; white-space:nowrap; margin-left:10px;}
+
+  /* Combat calc styles */
+  .calc-section{
+    padding: 16px 18px 6px 18px;
+  }
+  .calc-section-title{
+    font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+    color: var(--gold); margin-bottom:10px;
+  }
+  .calc-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .calc-label{ font-size:13.5px; color: var(--text-hi); }
+  .calc-input{
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--gold-bright);
+    font-weight:700;
+    font-size:13px;
+    width:70px;
+    text-align:center;
+    padding:6px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .stepper{
+    display:flex; align-items:center; gap:10px;
+  }
+  .stepper-btn{
+    width:26px; height:26px; border-radius:7px;
+    background: var(--bg-2); border:1px solid var(--line);
+    color: var(--gold-bright); font-size:15px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none;
+  }
+  .stepper-btn:active{ background:#2a3140; }
+  .stepper-val{ min-width:44px; text-align:center; font-weight:700; font-size:13.5px; font-variant-numeric: tabular-nums; }
+
+  .toggle{
+    width:44px; height:26px; border-radius:14px;
+    background: var(--bg-2); border:1px solid var(--line);
+    position:relative; cursor:pointer;
+  }
+  .toggle.on{ background: rgba(201,162,75,0.35); border-color: var(--gold); }
+  .toggle-knob{
+    position:absolute; top:2px; left:2px;
+    width:20px; height:20px; border-radius:50%;
+    background: var(--text-lo);
+    transition: left 0.2s, background 0.2s;
+  }
+  .toggle.on .toggle-knob{ left:20px; background: var(--gold-bright); }
+
+  .result-card{
+    margin: 16px 18px 24px 18px;
+    background: linear-gradient(160deg, rgba(201,162,75,0.10), rgba(201,162,75,0.02));
+    border: 1px solid rgba(201,162,75,0.35);
+    border-radius: 16px;
+    padding: 18px;
+  }
+  .result-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding: 7px 0;
+  }
+  .result-row .rlabel{ font-size:12.5px; color: var(--text-md); }
+  .result-row .rval{ font-size:14px; font-weight:600; color: var(--text-hi); font-variant-numeric: tabular-nums; }
+  .result-row.final{
+    border-top: 1px solid rgba(201,162,75,0.3);
+    margin-top:6px; padding-top:14px;
+  }
+  .result-row.final .rlabel{ color: var(--gold-bright); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;}
+  .result-row.final .rval{ font-size:26px; font-family:'Oswald',sans-serif; color: var(--gold-bright); font-weight:700; }
+  .save-note{
+    font-size:11px; color: var(--text-lo); text-align:center; margin-top:8px;
+  }
+
+  /* Rules tab */
+  .rules-search{
+    margin: 14px 18px 6px 18px;
+  }
+  .rule-card{
+    margin: 8px 14px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 13px 14px;
+  }
+  .rule-phase{
+    font-size:9.5px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+    color: var(--gold);
+  }
+  .rule-name{ font-weight:700; font-size:14px; margin: 4px 0 5px 0; }
+  .rule-text{ font-size:12px; color: var(--text-md); line-height:1.5; }
+
+  .swipe-hint{
+    font-size:9.5px; color: var(--text-lo); text-align:center; padding: 6px 0 2px 0; letter-spacing:0.3px;
+  }
+
+  /* Loadout chips (artifact / spell) on entry card */
+  .loadout-row{
+    margin-top: 10px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .loadout-chip{
+    display:flex; align-items:center; gap:8px;
+    background: rgba(201,162,75,0.08);
+    border: 1px solid rgba(201,162,75,0.3);
+    border-radius: 9px;
+    padding: 7px 10px;
+    cursor:pointer;
+  }
+  .loadout-chip.empty{
+    background: var(--bg-2);
+    border: 1px dashed var(--line);
+    color: var(--text-lo);
+  }
+  .loadout-chip .icon{ font-size:13px; }
+  .loadout-chip .body{ flex:1; min-width:0; }
+  .loadout-chip .lname{ font-size:12px; font-weight:700; color: var(--gold-bright); }
+  .loadout-chip.empty .lname{ color: var(--text-lo); font-weight:600; }
+  .loadout-chip .lsub{ font-size:10px; color: var(--text-lo); margin-top:1px; }
+  .loadout-chip .chevron{ color: var(--text-lo); font-size:12px; }
+
+  /* Picker sheet cards for artifact/spell */
+  .lore-tag{
+    display:inline-block;
+    font-size:9px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase;
+    color: var(--text-lo);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    padding: 2px 7px;
+    border-radius: 6px;
+    margin-top:5px;
+  }
+  .lore-tag.universal{ color: var(--gold-bright); border-color: rgba(201,162,75,0.4); }
+  .pick-card.wide{ display:block; }
+  .pick-card.wide .pick-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .pick-card .pick-text{ font-size:11.5px; color: var(--text-md); line-height:1.45; margin-top:6px; }
+  .pick-card .cv-badge{
+    font-size:11px; font-weight:800; color:#1a1508;
+    background: var(--gold-bright);
+    border-radius: 6px; padding: 3px 7px;
+    white-space:nowrap;
+  }
+
+  /* Photo picker in unit detail */
+  .photo-picker-row{
+    display:flex; gap:10px; padding: 14px 18px;
+  }
+  .photo-slot{
+    flex:1; aspect-ratio: 1;
+    border-radius: 14px;
+    background: var(--bg-2);
+    border: 1.5px dashed var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:6px;
+    color: var(--text-lo);
+    font-size:11px;
+    cursor:pointer;
+  }
+  .photo-slot.selected{ border-color: var(--gold); border-style:solid; background: rgba(201,162,75,0.08); color: var(--gold-bright); }
+  .photo-slot svg{ width:22px; height:22px; }
+
+  /* Full warscroll detail sheet */
+  .ws-hero{
+    height: 190px;
+    position:relative;
+    background: linear-gradient(160deg, #23140f, #0f0d10);
+    display:flex; align-items:flex-end;
+    flex-shrink:0;
+  }
+  .ws-hero.has-art{ background-size:cover; background-position:center; }
+  .ws-hero::after{
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(10,10,10,0) 30%, rgba(10,10,10,0.92) 100%);
+  }
+  .ws-hero-content{ position:relative; z-index:2; padding: 16px 18px; }
+  .ws-faction{ font-size:10px; font-weight:800; letter-spacing:1.2px; color: var(--gold-bright); text-transform:uppercase; }
+  .ws-name{ font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; color:#fff; margin-top:2px; text-transform:uppercase; letter-spacing:0.3px; }
+  .ws-pts{ font-size:12px; color: rgba(255,255,255,0.75); margin-top:2px; }
+  .ws-hero-glyph{
+    position:absolute; inset:0; z-index:1;
+    display:flex; align-items:center; justify-content:center;
+    color: rgba(255,255,255,0.12);
+    font-size:90px;
+  }
+  .ws-back{
+    position:absolute; top:14px; left:14px; z-index:5;
+    width:32px;height:32px; border-radius:9px;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(6px);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff; cursor:pointer;
+  }
+  .ws-body{ flex:1; overflow-y:auto; padding-bottom:24px; }
+  .ws-statblock{
+    display:flex;
+    margin: 16px 18px 0 18px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 0;
+  }
+  .ws-stat{ flex:1; text-align:center; }
+  .ws-stat .v{ font-size:16px; font-weight:700; color:var(--text-hi); }
+  .ws-stat .l{ font-size:9px; color:var(--text-lo); text-transform:uppercase; letter-spacing:0.4px; margin-top:2px; }
+
+  .ws-section-title{
+    font-size:11px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase;
+    color: var(--text-lo);
+    padding: 20px 18px 8px 18px;
+  }
+  .ws-table{
+    margin: 0 18px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow:hidden;
+  }
+  .ws-table-head, .ws-table-row{
+    display:flex;
+    padding: 9px 12px;
+    font-size:11.5px;
+  }
+  .ws-table-head{
+    color: var(--text-lo); font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.3px;
+    border-bottom: 1px solid var(--line);
+  }
+  .ws-table-row:not(:last-child){ border-bottom: 1px solid var(--line); }
+  .ws-table-row{ color: var(--text-hi); }
+  .wcol-name{ flex:1.6; }
+  .wcol{ flex:1; text-align:center; }
+
+  .ws-ability{
+    margin: 0 18px 10px 18px;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 13px;
+  }
+  .ws-ability-top{ display:flex; justify-content:space-between; align-items:center; }
+  .ws-ability-name{ font-weight:700; font-size:13px; }
+  .ws-ability-timing{ font-size:9px; font-weight:800; color: var(--gold); text-transform:uppercase; letter-spacing:0.4px; }
+  .ws-ability-text{ font-size:11.5px; color: var(--text-md); margin-top:5px; line-height:1.5; }
+
+  .ws-import-box{
+    margin: 8px 18px 0 18px;
+    padding: 14px;
+    border: 1.5px dashed var(--line);
+    border-radius: 14px;
+    text-align:center;
+  }
+  .ws-import-note{ font-size:11px; color: var(--text-lo); line-height:1.5; margin-bottom:10px; }
+  .ws-import-btn{
+    display:inline-flex; align-items:center; gap:7px;
+    background: rgba(201,162,75,0.12);
+    border: 1px solid rgba(201,162,75,0.4);
+    color: var(--gold-bright);
+    font-weight:700; font-size:12.5px;
+    padding: 9px 16px;
+    border-radius: 10px;
+    cursor:pointer;
+  }
+
+  /* Library screen */
+  .lib-card{
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 15px;
+    margin-bottom: 11px;
+    cursor:pointer;
+  }
+  .lib-card:active{ background: var(--bg-2); }
+  .lib-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .lib-name{ font-weight:700; font-size:15.5px; color:var(--text-hi); }
+  .lib-pts{ font-weight:700; font-size:13px; color: var(--gold-bright); white-space:nowrap; }
+  .lib-faction{ font-size:11px; color: var(--text-md); margin-top:2px; }
+  .lib-meta{ display:flex; gap:14px; margin-top:9px; padding-top:9px; border-top:1px solid var(--line); }
+  .lib-meta-item{ font-size:10.5px; color: var(--text-lo); display:flex; align-items:center; gap:4px; }
+
+  .back-chevron{
+    display:flex; align-items:center; justify-content:center;
+    width:32px; height:32px; margin-right:2px;
+    color: var(--gold-bright); font-size:20px; cursor:pointer;
+  }
+
+  /* New list form */
+  .form-section{ padding: 14px 18px 4px 18px; }
+  .form-label{ font-size:11px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; color: var(--text-lo); margin-bottom:8px; }
+  .form-input{
+    width:100%; background: var(--bg-1); border:1px solid var(--line); border-radius:10px;
+    padding: 12px 14px; color: var(--text-hi); font-size:14px; margin-bottom:16px;
+  }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .chip{
+    padding: 8px 14px; border-radius:9px; font-size:12.5px; font-weight:600;
+    background: var(--bg-1); border:1px solid var(--line); color: var(--text-md); cursor:pointer;
+  }
+  .chip.selected{ background: rgba(201,162,75,0.15); border-color: var(--gold); color: var(--gold-bright); }
+  .pts-row{ display:flex; gap:8px; margin-bottom:6px; }
+  .pts-chip{
+    flex:1; text-align:center; padding: 10px 0; border-radius:9px; font-size:12.5px; font-weight:700;
+    background: var(--bg-1); border:1px solid var(--line); color: var(--text-md); cursor:pointer;
+  }
+  .pts-chip.selected{ background: rgba(201,162,75,0.15); border-color: var(--gold); color: var(--gold-bright); }
+  .form-create-btn{
+    margin: 20px 18px; text-align:center; padding: 13px 0; border-radius:12px;
+    background: linear-gradient(135deg, var(--gold-bright), var(--gold));
+    color:#1a1508; font-weight:800; font-size:14px; cursor:pointer;
+  }
+
+  /* Hero banner on library home screen */
+  .hero-banner{
+    height: 230px;
+    position:relative;
+    flex-shrink:0;
+    background-size: cover;
+    background-position: center;
+    display:flex; align-items:flex-end;
+  }
+  .hero-banner.no-art{
+    background: linear-gradient(160deg, #241a0d, #0a0a0a);
+  }
+  .hero-banner::after{
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(10,10,10,0) 25%, rgba(8,8,8,0.92) 100%);
+  }
+  .hero-glyph{
+    position:absolute; inset:0; z-index:1;
+    display:flex; align-items:center; justify-content:center;
+    color: rgba(255,255,255,0.08);
+    font-size:100px;
+  }
+  .hero-content{ position:relative; z-index:2; padding: 18px; }
+  .hero-eyebrow{ font-size:10.5px; font-weight:800; letter-spacing:2px; color: var(--gold-bright); text-transform:uppercase; }
+  .hero-title{ font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; color:#fff; margin-top:3px; }
+  .hero-shuffle{
+    position:absolute; top:14px; right:14px; z-index:3;
+    width:34px; height:34px; border-radius:50%;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:15px; cursor:pointer;
+  }
+  .hero-art-btn{
+    position:absolute; top:14px; left:14px; z-index:3;
+    width:34px; height:34px; border-radius:50%;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:15px; cursor:pointer;
+  }
+
+  /* Art pack manager sheet */
+  .art-grid{
+    display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;
+    padding: 4px 18px 20px 18px;
+  }
+  .art-thumb{
+    aspect-ratio:1; border-radius:10px; background-size:cover; background-position:center;
+    position:relative; border:1px solid var(--line);
+  }
+  .art-thumb .remove-x{
+    position:absolute; top:4px; right:4px;
+    width:18px; height:18px; border-radius:50%;
+    background: rgba(0,0,0,0.6); color:#fff; font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .art-add-slot{
+    aspect-ratio:1; border-radius:10px;
+    border: 1.5px dashed var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-lo); font-size:22px; cursor:pointer;
+  }
+
+  /* ---- Full-screen Home with block-colour art placeholders ---- */
+  .home-screen{
+    flex:1; position:relative; overflow-y:auto; overflow-x:hidden;
+  }
+  .home-hero-block{
+    height: 340px;
+    position:relative;
+    display:flex; flex-direction:column; justify-content:space-between;
+    color:#fff;
+  }
+  /* Distinct flat colours per faction so it's obvious this is a placeholder
+     zone for a full-bleed background image, not a rendered photo. */
+  .home-hero-block.art-stormcast{ background: #2f5d8a; }
+  .home-hero-block.art-nighthaunt{ background: #3a4a3f; }
+  .home-hero-block.art-soulblight{ background: #6b1f2a; }
+  .home-hero-block.art-none{ background: repeating-linear-gradient(135deg, #23262d, #23262d 14px, #1a1d23 14px, #1a1d23 28px); }
+
+  .art-placeholder-tag{
+    position:absolute; top:54px; left:50%; transform:translateX(-50%);
+    font-size:10px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
+    color: rgba(255,255,255,0.75);
+    background: rgba(0,0,0,0.35);
+    padding: 5px 12px; border-radius: 20px;
+    border: 1px dashed rgba(255,255,255,0.4);
+    white-space:nowrap;
+  }
+  .home-hero-block::after{
+    content:'';
+    position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.15) 45%, rgba(10,10,10,0.85) 100%);
+  }
+  .home-top-row{
+    position:relative; z-index:3;
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 6px 16px 0 16px;
+  }
+  .menu-btn{
+    width:38px; height:38px; border-radius:11px;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(8px);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .menu-btn .bar{ width:16px; height:2px; background:#fff; border-radius:1px; }
+  .menu-bars{ display:flex; flex-direction:column; gap:3px; }
+
+  .home-hero-content{ position:relative; z-index:3; padding: 0 18px 18px 18px; }
+  .home-eyebrow{ font-size:10.5px; font-weight:800; letter-spacing:2px; color: #ffd77a; text-transform:uppercase; }
+  .home-title{ font-family:'Oswald',sans-serif; font-size:28px; font-weight:700; margin-top:4px; }
+  .home-subtitle{ font-size:12px; color:rgba(255,255,255,0.8); margin-top:3px; }
+
+  .home-quick-actions{
+    position:relative; z-index:10;
+    display:flex; gap:10px;
+    padding: 14px 16px 0 16px;
+    margin-top:-26px;
+  }
+  .quick-action{
+    flex:1;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 10px;
+    text-align:center;
+    cursor:pointer;
+  }
+  .quick-action .qa-icon{ font-size:18px; margin-bottom:4px; }
+  .quick-action .qa-label{ font-size:10.5px; font-weight:700; color: var(--text-hi); }
+
+  .home-section{ padding: 22px 16px 4px 16px; }
+  .home-section-title{
+    font-size:11px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase;
+    color: var(--text-lo); margin-bottom:10px;
+  }
+
+  /* List cards on home, each with its own block-colour art strip placeholder */
+  .home-list-card{
+    display:flex; gap:0;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow:hidden;
+    margin-bottom: 10px;
+    cursor:pointer;
+  }
+  .home-list-art{
+    width: 64px; flex-shrink:0;
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .home-list-art .art-mini-tag{
+    font-size:7px; font-weight:800; color:rgba(255,255,255,0.85);
+    text-align:center; letter-spacing:0.3px; line-height:1.3;
+    text-transform:uppercase;
+  }
+  .home-list-body{ flex:1; padding: 12px 14px; min-width:0; }
+  .list-card-options{
+    display:flex; align-items:center; justify-content:center;
+    width:34px; flex-shrink:0;
+    color: var(--text-lo); font-size:18px; font-weight:800;
+    cursor:pointer;
+  }
+
+  /* ---- Slide-out nav menu ---- */
+  .nav-menu-overlay{
+    position:absolute; inset:0; z-index:200;
+    background: rgba(0,0,0,0.55);
+    opacity:0; pointer-events:none;
+    transition: opacity 0.25s;
+  }
+  .nav-menu-overlay.show{ opacity:1; pointer-events:auto; }
+  .nav-menu-panel{
+    width: 78%; max-width:300px; height:100%;
+    background: var(--bg-0);
+    border-right: 1px solid var(--line);
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(.32,.72,0,1);
+    display:flex; flex-direction:column;
+  }
+  .nav-menu-overlay.show .nav-menu-panel{ transform: translateX(0); }
+  .nav-menu-header{
+    padding: 50px 20px 20px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-menu-title{ font-family:'Oswald',sans-serif; font-size:20px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color: var(--gold-bright); }
+  .nav-menu-sub{ font-size:11px; color: var(--text-lo); margin-top:3px; }
+  .nav-menu-items{ flex:1; padding: 10px 0; overflow-y:auto; }
+  .nav-menu-item{
+    display:flex; align-items:center; gap:14px;
+    padding: 13px 20px;
+    cursor:pointer;
+    color: var(--text-md);
+    font-size:14px; font-weight:600;
+  }
+  .nav-menu-item.active{ color: var(--gold-bright); background: rgba(201,162,75,0.08); }
+  .nav-menu-item:active{ background: var(--bg-1); }
+  .nav-menu-item .nmi-icon{ width:20px; text-align:center; font-size:16px; }
+  .nav-menu-divider{ height:1px; background: var(--line); margin: 8px 20px; }
+  .nav-menu-footer{
+    padding: 16px 20px 26px 20px;
+    font-size:10.5px; color: var(--text-lo); line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="statusbar">
+    <span>9:41</span>
+    <span>●●●●  ▲  🔋</span>
+  </div>
+
+  <div class="screen" id="screen"></div>
+  <div id="navMenuRoot"></div>
+
+  <div class="tabbar">
+    <div class="tab active" data-tab="builder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z"/></svg>
+      Home
+    </div>
+    <div class="tab" data-tab="calc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01"/></svg>
+      Dice Calc
+    </div>
+    <div class="tab" data-tab="import">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      Import
+    </div>
+    <div class="tab" data-tab="rules">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Rules
+    </div>
+  </div>
+</div>
+
+<div id="sheetRoot"></div>
+
+<script>
+/* ---------------- Data (mirrors Models.swift / SampleData.swift) ---------------- */
+
+const UNITS = [
+  {
+    id:'liberators', name:'Liberators', faction:'Stormcast Eternals',
+    points:120, baseSize:5, reinforceIncrement:5, maxModels:10,
+    stats:{ move:'5"', health:2, save:3, ward:null, control:2 },
+    weapons:[
+      {name:'Warhammer', attacks:'2', toHit:3, toWound:3, rend:0, damage:'1'},
+      {name:'Warblade', attacks:'2', toHit:3, toWound:3, rend:1, damage:'1'}
+    ],
+    keywords:['INFANTRY','BATTLELINE','STORMCAST ETERNALS','LIBERATORS'],
+    silhouette:'infantry', photo:null
+  },
+  {
+    id:'celestant', name:'Lord-Celestant on Dracoth', faction:'Stormcast Eternals',
+    points:220, baseSize:1, reinforceIncrement:null, maxModels:1,
+    stats:{ move:'10"', health:12, save:3, ward:null, control:3 },
+    weapons:[
+      {name:'Tempestos Hammer', attacks:'4', toHit:3, toWound:3, rend:1, damage:'2'},
+      {name:"Dracoth's Jaws", attacks:'3', toHit:3, toWound:3, rend:1, damage:'2'}
+    ],
+    keywords:['HERO','LEADER','CAVALRY','STORMCAST ETERNALS'],
+    silhouette:'cavalry', photo:null
+  },
+  {
+    id:'praetors', name:'Vindictors', faction:'Stormcast Eternals',
+    points:150, baseSize:5, reinforceIncrement:5, maxModels:10,
+    stats:{ move:'5"', health:3, save:3, ward:null, control:2 },
+    weapons:[
+      {name:'Bolt Glaive', attacks:'3', toHit:3, toWound:3, rend:1, damage:'2'}
+    ],
+    keywords:['INFANTRY','BATTLELINE','STORMCAST ETERNALS','VINDICTORS'],
+    silhouette:'infantry', photo:null
+  },
+  {
+    id:'knight-incantor', name:'Knight-Incantor', faction:'Stormcast Eternals',
+    points:135, baseSize:1, reinforceIncrement:null, maxModels:1,
+    stats:{ move:'5"', health:5, save:4, ward:5, control:1 },
+    weapons:[
+      {name:'Sigmarite Warblade', attacks:'2', toHit:4, toWound:4, rend:0, damage:'1'}
+    ],
+    keywords:['HERO','WIZARD','INFANTRY','STORMCAST ETERNALS'],
+    silhouette:'hero', photo:null
+  }
+];
+
+// Simple generated-icon silhouettes — no GW artwork, just abstract unit-type glyphs
+const SILHOUETTES = {
+  infantry: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="6" r="3"/><path d="M7 21v-6a5 5 0 0 1 10 0v6"/></svg>`,
+  cavalry: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18c2-1 3-3 3-5 0-3 2-5 5-6l2-3 3 2-2 2c2 1 3 3 3 5v5"/><circle cx="8" cy="18" r="1.5" fill="currentColor"/><circle cx="17" cy="18" r="1.5" fill="currentColor"/></svg>`,
+  monster: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 16c1-6 5-10 9-10s8 4 9 10c-2 2-5 3-9 3s-7-1-9-3z"/><path d="M9 9l-2-3M15 9l2-3"/></svg>`,
+  warMachine: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="13" width="8" height="6" rx="1"/><circle cx="7" cy="19" r="2"/><path d="M11 15h9l-2-5h-5z"/></svg>`,
+  hero: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 4.6L19 7.3l-3.5 3.4.8 4.8L12 13.2 7.7 15.5l.8-4.8L5 7.3l4.8-.7z"/></svg>`,
+  flying: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 14c4-5 7-2 10 0 3-2 6-5 10 0-4 1-7 4-10 7-3-3-6-6-10-7z"/></svg>`
+};
+
+const ARTIFACTS = [
+  { id:'a1', name:'Sigmarite Amulet', lore:'Universal', isUniversal:true, text:'Once per battle, in your hero phase, the bearer heals D6 damage.' },
+  { id:'a2', name:'Blade of Realmshaping', lore:'Universal', isUniversal:true, text:'Add 1 to the Rend characteristic of the bearer\'s melee weapons.',
+    modifiers: [{ stat:'rend', op:'add', value:-1, label:'+1 Rend' }] },
+  { id:'a3', name:'Gnarlroot Sigil', lore:'Stormcast Eternals', isUniversal:false, text:'Once per turn, the bearer or a friendly STORMCAST unit within 12" can ignore the first mortal wound suffered.' },
+  { id:'a4', name:'Crown of Command', lore:'Stormcast Eternals', isUniversal:false, text:'Add 1 to the bearer\'s control score, and it cannot be a target of Battleshock modifiers.' }
+];
+
+const SPELLS = [
+  { id:'s1', name:'Arcane Bolt', lore:'Universal', isUniversal:true, castingValue:5, text:'Deals D3 mortal wounds to the nearest visible enemy unit within 18".' },
+  { id:'s2', name:'Mystic Shield', lore:'Universal', isUniversal:true, castingValue:5, text:'Target friendly unit within 18" gets +1 to save rolls until your next hero phase.',
+    modifiers: [{ stat:'save', op:'add', value:-1, label:'+1 to Save', side:'defender' }] },
+  { id:'s3', name:'Lightning Blast', lore:'Stormcast Eternals', isUniversal:false, castingValue:6, text:'Deals 3 mortal wounds to a visible enemy unit within 12", or D3 if the caster moved this turn.' },
+  { id:'s4', name:"Celestial Blades", lore:'Stormcast Eternals', isUniversal:false, castingValue:7, text:'A friendly STORMCAST unit within 12" gets +1 to hit in melee until your next hero phase.',
+    modifiers: [{ stat:'hit', op:'add', value:1, label:'+1 to Hit' }] }
+];
+
+const RULES = [
+  { phase:'Hero Phase', name:'Casting & Unbinding', text:'A WIZARD can attempt to cast one spell it knows. Roll 2D6; equal or beat the casting value to succeed. Enemy WIZARDs within range can attempt to unbind.' },
+  { phase:'Movement Phase', name:'Normal Move', text:'Each unit can move up to its Move characteristic in inches. Units cannot move within 3" of an enemy unit unless charging.' },
+  { phase:'Shooting Phase', name:'Making Attacks', text:'Pick a unit, pick a target within range and visible, roll to hit, roll to wound, target rolls saves.' },
+  { phase:'Charge Phase', name:'Charge Roll', text:'Roll 2D6 — the result is how far the charging unit can move, and it must end within 1/2" of an enemy unit it declared a charge against.' },
+  { phase:'Combat Phase', name:'Pile In & Attack', text:'Units can pile in up to 3" toward the closest enemy, then make attacks with any eligible weapons.' },
+  { phase:'Battleshock Phase', name:'Battleshock Test', text:'For each model slain from a unit this turn, test at the end of the turn — roll 2D6, add fled models to lost models, compare to the Bravery-style table if applicable.' },
+];
+
+// ---------------- Local persistence (survives closing the app) ----------------
+//
+// Everything lives in localStorage under one namespaced key per data slice.
+// This is what makes the Home Screen version "sticky" — the in-tab preview
+// version this replaced kept everything in memory only, so a refresh wiped
+// it. localStorage on iOS Safari/PWA persists across launches, though Apple
+// can clear it if the app goes unused for a long stretch — see the Export
+// button in Settings for a manual backup path.
+
+const STORAGE_PREFIX = 'warscroll.';
+
+function storageSave(key, value){
+  try {
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+  } catch (e) {
+    console.error('Storage save failed for', key, e);
+  }
+}
+function storageLoad(key, fallback){
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch (e) {
+    console.error('Storage load failed for', key, e);
+    return fallback;
+  }
+}
+
+// ---------------- Multi-list store ----------------
+let savedLists = storageLoad('savedLists', []);
+let activeListId = null;  // which list is open in the builder, null = showing library
+let currentTab = 'builder';
+let newListDraft = { name:'', faction:'Stormcast Eternals', pointsLimit:2000 };
+
+// Personal art pack for the home screen banner. In the real app these are
+// images you import via PhotosPicker (see HomeArtManager.swift); here we use
+// CSS-gradient placeholders since this preview can't touch your photo library.
+// currentHeroArt is picked once per "session" (page load) and only changes
+// again if you tap the shuffle button, mirroring HomeArtManager's behavior.
+let homeArtPool = storageLoad('homeArtPool', []);
+let currentHeroArt = null;
+
+function makeId(){ return 'l' + Math.random().toString(36).slice(2,10); }
+
+function pickHeroArt(){
+  if(homeArtPool.length === 0){ currentHeroArt = null; return; }
+  currentHeroArt = homeArtPool[Math.floor(Math.random()*homeArtPool.length)];
+}
+
+function getActiveList(){
+  return savedLists.find(l => l.id === activeListId) || null;
+}
+
+// ---------------- Content Library (imported units/spells/artifacts/rules) ----------------
+//
+// This is separate from savedLists (your army lists) — it's the catalog
+// those lists draw units from. Everything here comes from JSON files you
+// generate on your own computer with extract_pdf.py and load in directly;
+// nothing is fetched from the network and nothing is bundled with the app
+// itself, so none of it needs to touch GitHub.
+
+let contentLibrary = storageLoad('contentLibrary', {
+  units: [],
+  spells: [],
+  artifacts: [],
+  ruleSections: []
+});
+
+function saveContentLibrary(){
+  storageSave('contentLibrary', contentLibrary);
+}
+
+function mergeByName(existingArr, incomingArr, keyFn){
+  for (const item of incomingArr) {
+    const key = keyFn(item);
+    const idx = existingArr.findIndex(e => keyFn(e) === key);
+    if (idx >= 0) existingArr[idx] = item;
+    else existingArr.push(item);
+  }
+}
+
+function ContentLibraryUnitCount(){
+  return UNITS.length + contentLibrary.units.length;
+}
+
+// ---------------- Structured combat modifiers ----------------
+//
+// Free-text ability/artifact/spell descriptions can't be reliably applied
+// to a dice calculation automatically — "add 1 to Rend" and "once per
+// battle, deals D3 mortal wounds instead of attacking" are structurally
+// different effects. So artifacts/spells/unit abilities can *optionally*
+// carry a small structured `modifiers` array alongside their free text.
+// When present, the calculator can offer them as one-tap toggles that
+// apply a known, predictable change. When absent (the common case for
+// anything freshly imported and not yet annotated), the calculator still
+// shows the ability's name and text so you can apply it by adjusting the
+// manual fields yourself — nothing is silently skipped.
+//
+// Modifier shape:
+//   { stat: 'hit'|'wound'|'rend'|'damage'|'attacks', op: 'add'|'set', value: Number,
+//     label: String, condition: String (optional, informational only) }
+//
+// This schema is intentionally tiny. It covers the common flat modifiers
+// (+1 to hit, -1 rend, etc.) that make up most artifacts/spells/command
+// abilities. Anything more exotic (reroll rules, "instead of attacking",
+// mortal-wound-on-6 riders) still needs to be read and reasoned about by
+// you — the modifier chip's label always shows the full effect text so
+// you're never guessing what a toggle does.
+
+function applyModifiers(baseInput, activeModifiers){
+  const result = { ...baseInput };
+  for (const mod of activeModifiers) {
+    if (mod.op === 'add') {
+      if (mod.stat === 'hit') result.hitMod = (result.hitMod||0) + mod.value;
+      else if (mod.stat === 'wound') result.woundMod = (result.woundMod||0) + mod.value;
+      else if (mod.stat === 'rend') result.rend = (result.rend||0) + mod.value;
+      else if (mod.stat === 'attacks') result.attacks = (result.attacks||0) + mod.value;
+      else if (mod.stat === 'damage') result.damage = (result.damage||0) + mod.value;
+      else if (mod.stat === 'save') result.targetSave = Math.max(2, (result.targetSave||4) + mod.value);
+    } else if (mod.op === 'set') {
+      if (mod.stat === 'hit') result.toHit = mod.value;
+      else if (mod.stat === 'wound') result.toWound = mod.value;
+      else if (mod.stat === 'rend') result.rend = mod.value;
+      else if (mod.stat === 'attacks') result.attacks = mod.value;
+      else if (mod.stat === 'damage') result.damage = mod.value;
+      else if (mod.stat === 'save') result.targetSave = mod.value;
+    }
+  }
+  return result;
+}
+
+// ---------------- Situational modifiers (charge, buffs, unit sub-abilities) ----------------
+//
+// There's no single universal AoS rule for "charged" or "has a musician" —
+// each battletome/unit defines its own bonus (if any) for these, so this
+// can't be hardcoded as a fixed mechanical effect the way a specific
+// artifact's text can. Instead this is a short list of common situational
+// *labels* you toggle on, each starting at a neutral (0) value that you
+// dial in yourself based on what your unit's warscroll actually says —
+// the toggle just gives you a labeled, rememberable slot instead of losing
+// track of "wait, was I already counting the charge bonus in Rend?"
+//
+// Saved per-device so if you always run the same combo (e.g. this unit
+// always has a standard bearer), you don't re-enter it every session.
+const SITUATIONAL_MODIFIER_DEFAULTS = [
+  { key:'charged', label:'Charged This Turn', stat:'hit', op:'add', value:0 },
+  { key:'musician', label:'Musician / Buff Aura', stat:'hit', op:'add', value:0 },
+  { key:'standard', label:'Standard Bearer Bonus', stat:'wound', op:'add', value:0 },
+  { key:'inspiring', label:'Inspiring Presence / Command', stat:'rend', op:'add', value:0 }
+];
+
+
+function touchList(list){
+  list.updatedAt = Date.now();
+  storageSave('savedLists', savedLists);
+  render();
+}
+
+/* ---------------- Combat math (mirrors CombatCalculator.swift) ---------------- */
+
+function parseDiceAverage(v){
+  v = String(v).toUpperCase().replace(/\s/g,'');
+  if(!isNaN(parseFloat(v)) && !v.includes('D')) return parseFloat(v);
+  let bonus = 0, base = v;
+  if(v.includes('+')){
+    const idx = v.indexOf('+');
+    bonus = parseFloat(v.slice(idx+1)) || 0;
+    base = v.slice(0, idx);
+  }
+  if(base.includes('D')){
+    const parts = base.split('D');
+    const mult = parts[0] ? parseFloat(parts[0]) : 1;
+    const die = parseFloat(base.startsWith('D') ? base.slice(1) : parts[1]) || 6;
+    return mult * ((die+1)/2) + bonus;
+  }
+  return bonus;
+}
+function probability(target, modifier=0){
+  const adj = Math.max(2, Math.min(7, target - modifier));
+  if(adj > 6) return 0;
+  return (7 - adj) / 6;
+}
+function calculate(input){
+  const hitChance = probability(input.toHit, input.hitMod);
+  const woundChance = probability(input.toWound, input.woundMod);
+  const expHits = input.attacks * hitChance;
+  const expWounds = expHits * woundChance;
+  const modSave = Math.min(7, input.targetSave + input.rend);
+  const saveChance = modSave > 6 ? 0 : probability(modSave);
+  let expUnsaved = expWounds * (1 - saveChance);
+  if(input.targetWard){
+    expUnsaved *= (1 - probability(input.targetWard));
+  }
+  const expDamage = expUnsaved * input.damage;
+  return { expHits, expWounds, expUnsaved, expDamage, effectiveSave: modSave };
+}
+
+/* ---------------- List helpers ---------------- */
+
+function unitTotalPoints(entry){
+  return entry.unit.points + (entry.unit.points * entry.reinforcements);
+}
+function armyTotalPoints(list){
+  return list.entries.reduce((s,e)=>s+unitTotalPoints(e),0);
+}
+function validationIssues(list){
+  const issues = [];
+  const total = armyTotalPoints(list);
+  if(total > list.pointsLimit) issues.push(`Over points limit by ${total - list.pointsLimit}`);
+  if(list.entries.length && !list.entries.find(e=>e.isGeneral)) issues.push('No General selected');
+  const heroCount = list.entries.filter(e=>e.unit.keywords.includes('HERO')).length;
+  if(heroCount > 6) issues.push('Too many Heroes (max 6)');
+  const battlelineCount = list.entries.filter(e=>e.unit.keywords.includes('BATTLELINE')).length;
+  if(list.entries.length && battlelineCount === 0) issues.push('No Battleline units — most formats require 2-3');
+  const artifactCount = list.entries.filter(e=>e.artifact).length;
+  if(artifactCount > 1) issues.push(`Only 1 Artifact of Power allowed per army (currently ${artifactCount})`);
+  return issues;
+}
+
+/* ---------------- Rendering ---------------- */
+
+const screen = document.getElementById('screen');
+const sheetRoot = document.getElementById('sheetRoot');
+
+function render(){
+  if(currentTab === 'builder'){
+    activeListId ? renderBuilder() : renderLibrary();
+  }
+  else if(currentTab === 'calc') renderCalc();
+  else if(currentTab === 'import') renderImport();
+  else if(currentTab === 'rules') renderRules();
+  // 'other' (Manage Units / Settings placeholders) renders itself directly
+  // via renderPlaceholderScreen and doesn't need dispatch here.
+}
+
+/* ---- Library screen: shows all saved lists ---- */
+
+// Maps a faction name to a flat colour class + short label, standing in for
+// "this is where a full-bleed faction background image will render". Real
+// art (from HomeArtManager) still overrides this via inline background-image
+// when present — these blocks only show when no art has been imported yet,
+// or as the per-list strip until per-faction art exists.
+function factionArtClass(faction){
+  if(!faction) return 'art-none';
+  const f = faction.toLowerCase();
+  if(f.includes('stormcast')) return 'art-stormcast';
+  if(f.includes('nighthaunt')) return 'art-nighthaunt';
+  if(f.includes('soulblight')) return 'art-soulblight';
+  return 'art-none';
+}
+function factionArtLabel(faction){
+  return faction ? `[ full-bleed ${faction} art ]` : '[ full-bleed background art ]';
+}
+
+function renderLibrary(){
+  const heroStyle = currentHeroArt ? ` style="background-image:url('${currentHeroArt.replace(/'/g,"\\'")}')"` : '';
+  const heroClass = currentHeroArt ? '' : 'art-none';
+
+  let listsHtml = '';
+  if(savedLists.length === 0){
+    listsHtml = `
+      <div class="empty-state">
+        <div class="glyph">🛡️</div>
+        <div class="title">No armies yet</div>
+        <div class="sub">Tap "New List" below to build<br>your first army list.</div>
+      </div>`;
+  } else {
+    const sorted = [...savedLists].sort((a,b)=>b.updatedAt - a.updatedAt);
+    listsHtml = sorted.map(list => {
+      const pts = armyTotalPoints(list);
+      const dateStr = new Date(list.updatedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+      const artClass = factionArtClass(list.faction);
+      return `
+      <div class="home-list-card" onclick="openList('${list.id}')">
+        <div class="home-list-art ${artClass}">
+          <div class="art-mini-tag">ART</div>
+        </div>
+        <div class="home-list-body">
+          <div class="lib-top">
+            <div class="lib-name">${escapeHtml(list.name)}</div>
+            <div class="lib-pts">${pts}/${list.pointsLimit}</div>
+          </div>
+          <div class="lib-faction">${escapeHtml(list.faction)}</div>
+          <div class="lib-meta" style="margin-top:6px; padding-top:6px;">
+            <div class="lib-meta-item">👥 ${list.entries.length} units</div>
+            <div class="lib-meta-item">🕘 ${dateStr}</div>
+          </div>
+        </div>
+        <div class="list-card-options" onclick="event.stopPropagation(); openListOptions('${list.id}')">⋯</div>
+      </div>`;
+    }).join('');
+  }
+
+  screen.innerHTML = `
+    <div class="home-screen">
+      <div class="home-hero-block ${heroClass}"${heroStyle}>
+        <div class="home-top-row">
+          <div class="menu-btn" onclick="openNavMenu()">
+            <div class="menu-bars"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+          </div>
+          <div class="menu-btn" onclick="openArtManager()">🖼</div>
+        </div>
+        ${!currentHeroArt ? `<div class="art-placeholder-tag">${factionArtLabel(null)}</div>` : ''}
+        <div class="home-hero-content">
+          <div class="home-eyebrow">Warscroll Companion</div>
+          <div class="home-title">My Armies</div>
+          <div class="home-subtitle">${savedLists.length} saved list${savedLists.length===1?'':'s'} · ${ContentLibraryUnitCount()} units in your library</div>
+        </div>
+      </div>
+
+      <div class="home-quick-actions">
+        <div class="quick-action" onclick="openNewListForm()">
+          <div class="qa-icon">➕</div>
+          <div class="qa-label">New List</div>
+        </div>
+        <div class="quick-action" onclick="switchTab('import')">
+          <div class="qa-icon">⬇️</div>
+          <div class="qa-label">Import PDF</div>
+        </div>
+        <div class="quick-action" onclick="switchTab('calc')">
+          <div class="qa-icon">🎲</div>
+          <div class="qa-label">Dice Calc</div>
+        </div>
+        <div class="quick-action" onclick="switchTab('rules')">
+          <div class="qa-icon">📖</div>
+          <div class="qa-label">Rules</div>
+        </div>
+      </div>
+
+      <div class="home-section">
+        <div class="home-section-title">Your Lists</div>
+        ${listsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function switchTab(tabName){
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tab === tabName);
+  });
+  currentTab = tabName;
+  if(tabName === 'builder') activeListId = null;
+  render();
+}
+
+function shuffleHeroArt(){
+  pickHeroArt();
+  render();
+}
+
+function openArtManager(){
+  const gridHtml = homeArtPool.map((art, i) => `
+    <div class="art-thumb" style="background-image:url('${art.replace(/'/g,"\\'")}')">
+      <div class="remove-x" onclick="removeArt(${i})">✕</div>
+    </div>
+  `).join('');
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeArtManager()">
+      <div class="sheet" style="max-height:70%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">Home Screen Art</div>
+          <div class="sheet-close" onclick="closeArtManager()">Done</div>
+        </div>
+        <div style="padding:10px 18px 4px 18px; font-size:11.5px; color:var(--text-lo); line-height:1.5;">
+          Import artwork you already have — battletome/rules PDF pages, box art photos, or your own model photos — and it rotates on this screen each time you open the app. Stored on this device only.
+        </div>
+        <div class="art-grid" style="margin-top:10px;">
+          ${gridHtml}
+          <div class="art-add-slot" onclick="document.getElementById('artUploadInput').click()">＋</div>
+        </div>
+        <input type="file" id="artUploadInput" accept="image/*" multiple style="display:none" onchange="handleArtUpload(this.files)">
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay').classList.add('show'));
+}
+function closeArtManager(){
+  closeSheet();
+  render();
+}
+
+// Reads each picked image as a base64 data URL and stores it directly in
+// localStorage alongside everything else. Data URLs drop straight into
+// background-image the same way the old CSS-gradient placeholders did, so
+// no other rendering code needs to change. Note: localStorage has roughly
+// a 5-10MB ceiling depending on the browser, so this resizes large photos
+// down before storing — a full-res phone photo (4-8MB) would eat that
+// budget in one or two imports otherwise.
+function handleArtUpload(fileList){
+  const files = Array.from(fileList || []);
+  if(files.length === 0) return;
+  let remaining = files.length;
+  files.forEach(file => {
+    resizeImageFile(file, 1600, (dataUrl) => {
+      if(dataUrl){
+        homeArtPool.push(dataUrl);
+        if(!currentHeroArt) pickHeroArt();
+      }
+      remaining--;
+      if(remaining === 0){
+        storageSave('homeArtPool', homeArtPool);
+        openArtManager();
+      }
+    });
+  });
+}
+
+// Downscales an image file to maxDim on its longest side and returns a JPEG
+// data URL via callback. Keeps storage usage sane and avoids the multi-MB
+// PNGs a phone camera produces blowing through localStorage's quota.
+function resizeImageFile(file, maxDim, callback){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        const scale = maxDim / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        callback(canvas.toDataURL('image/jpeg', 0.85));
+      } catch(err){
+        console.error('Image encode failed', err);
+        callback(null);
+      }
+    };
+    img.onerror = () => callback(null);
+    img.src = e.target.result;
+  };
+  reader.onerror = () => callback(null);
+  reader.readAsDataURL(file);
+}
+
+function removeArt(i){
+  homeArtPool.splice(i,1);
+  if(homeArtPool.length === 0) currentHeroArt = null;
+  storageSave('homeArtPool', homeArtPool);
+  openArtManager();
+}
+
+/* ---- Slide-out navigation menu ---- */
+
+
+const navMenuRoot = document.getElementById('navMenuRoot');
+let importedUnitsCount = 0; // placeholder counter so the home subtitle can react to "imports" in this mock
+
+function openNavMenu(){
+  navMenuRoot.innerHTML = `
+    <div class="nav-menu-overlay" id="navOverlay" onclick="if(event.target===this) closeNavMenu()">
+      <div class="nav-menu-panel">
+        <div class="nav-menu-header">
+          <div class="nav-menu-title">Warscroll Companion</div>
+          <div class="nav-menu-sub">Personal list builder &amp; reference</div>
+        </div>
+        <div class="nav-menu-items">
+          <div class="nav-menu-item ${currentTab==='builder'&&!activeListId?'active':''}" onclick="navGo('builder')">
+            <span class="nmi-icon">🏠</span> Home
+          </div>
+          <div class="nav-menu-item" onclick="navGo('managelists')">
+            <span class="nmi-icon">📋</span> My Armies
+          </div>
+          <div class="nav-menu-item ${currentTab==='calc'?'active':''}" onclick="navGo('calc')">
+            <span class="nmi-icon">🎲</span> Dice Calculator
+          </div>
+          <div class="nav-menu-item ${currentTab==='rules'?'active':''}" onclick="navGo('rules')">
+            <span class="nmi-icon">📖</span> Rules Reference
+          </div>
+          <div class="nav-menu-divider"></div>
+          <div class="nav-menu-item ${currentTab==='import'?'active':''}" onclick="navGo('import')">
+            <span class="nmi-icon">⬇️</span> Import Content
+          </div>
+          <div class="nav-menu-item" onclick="navGo('manageunits')">
+            <span class="nmi-icon">🗂️</span> Manage Imported Units
+          </div>
+          <div class="nav-menu-item" onclick="openArtManagerFromMenu()">
+            <span class="nmi-icon">🖼️</span> Home Screen Art
+          </div>
+          <div class="nav-menu-divider"></div>
+          <div class="nav-menu-item" onclick="navGo('settings')">
+            <span class="nmi-icon">⚙️</span> Settings
+          </div>
+        </div>
+        <div class="nav-menu-footer">
+          All content lives on this device only. Nothing you import is uploaded or shared.
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('navOverlay').classList.add('show'));
+}
+function closeNavMenu(){
+  const el = document.getElementById('navOverlay');
+  if(el){ el.classList.remove('show'); setTimeout(()=> navMenuRoot.innerHTML = '', 260); }
+}
+function navGo(destination){
+  closeNavMenu();
+  if(['builder','calc','import','rules'].includes(destination)){
+    switchTab(destination);
+  } else if(destination === 'settings'){
+    currentTab = 'other';
+    renderSettings();
+  } else if(destination === 'manageunits'){
+    currentTab = 'other';
+    renderManageUnits();
+  } else {
+    currentTab = 'other';
+    renderPlaceholderScreen(destination);
+  }
+}
+function openArtManagerFromMenu(){
+  closeNavMenu();
+  openArtManager();
+}
+function renderPlaceholderScreen(destination){
+  const titles = { managelists: 'My Armies' };
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div style="display:flex; align-items:center;">
+          <div class="back-chevron" onclick="switchTab('builder')">‹</div>
+          <div class="navtitle">${titles[destination] || 'Screen'}</div>
+        </div>
+      </div>
+    </div>
+    <div class="empty-state">
+      <div class="glyph">🛠️</div>
+      <div class="title">Same list as Home</div>
+      <div class="sub">Your saved lists already appear on the<br>Home tab — this is the same data.</div>
+    </div>
+  `;
+}
+
+/* ---- Manage Imported Units: browse/delete real content library units ---- */
+
+function renderManageUnits(searchText){
+  searchText = searchText || '';
+  const importedIndexed = contentLibrary.units.map((u,i) => ({...u, _builtin:false, _idx:i}));
+  const allUnits = [...UNITS.map(u=>({...u, _builtin:true, _idx:-1})), ...importedIndexed];
+  const filtered = searchText
+    ? allUnits.filter(u => u.name.toLowerCase().includes(searchText.toLowerCase()) || u.faction.toLowerCase().includes(searchText.toLowerCase()))
+    : allUnits;
+
+  const byFaction = {};
+  filtered.forEach(u => { (byFaction[u.faction] = byFaction[u.faction] || []).push(u); });
+
+  const modCount = u => (u.abilities||[]).filter(a => a.modifiers && a.modifiers.length).length;
+
+  const groupsHtml = Object.keys(byFaction).sort().map(faction => `
+    <div class="ws-section-title">${escapeHtml(faction)}</div>
+    ${byFaction[faction].map(u => `
+      <div class="pick-card wide">
+        <div class="pick-top">
+          <div class="pick-name">${escapeHtml(u.name)}${u._builtin ? ' <span style="color:var(--text-lo); font-size:9px;">(built-in)</span>' : ''}</div>
+          <span class="pick-pts">${u.points} pts</span>
+        </div>
+        <div class="pick-text">${(u.keywords||[]).join(' · ')}${modCount(u) ? ` · 🎯 ${modCount(u)} modifier(s)` : ''}</div>
+        ${!u._builtin ? `
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <div class="mini-btn" onclick="editImportedUnit(${u._idx})">Edit / Add Modifiers</div>
+            <div class="mini-btn danger" onclick="deleteImportedUnitByIndex(${u._idx})">Remove</div>
+          </div>
+        ` : ''}
+      </div>
+    `).join('')}
+  `).join('');
+
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div style="display:flex; align-items:center;">
+          <div class="back-chevron" onclick="switchTab('builder')">‹</div>
+          <div class="navtitle">Imported Units</div>
+        </div>
+      </div>
+    </div>
+    <div class="search-bar" style="margin:12px 18px;" onclick="promptUnitSearch()">🔍 ${searchText ? escapeHtml(searchText) : 'Search your units'}</div>
+    <div style="padding:0 18px 6px 18px;">
+      <div class="pick-card" onclick="renderManageLore()">
+        <div class="pick-name">Manage Spells &amp; Artifacts →</div>
+        <div class="pick-sub">Edit modifiers on imported lore items</div>
+      </div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding-bottom:20px;">
+      ${filtered.length === 0 ? `<div class="empty-state"><div class="glyph">📭</div><div class="title">No units found</div></div>` : groupsHtml}
+    </div>
+  `;
+}
+function promptUnitSearch(){
+  const q = prompt('Search units by name or faction:', '');
+  if(q !== null) renderManageUnits(q);
+}
+function deleteImportedUnitByIndex(idx){
+  const unit = contentLibrary.units[idx];
+  if(!unit) return;
+  if(!confirm(`Remove "${unit.name}" from your library?`)) return;
+  contentLibrary.units.splice(idx,1);
+  saveContentLibrary();
+  renderManageUnits();
+}
+
+// Re-opens the same review screen used during import, pre-filled with the
+// unit's current saved data — so adding a modifier to something imported
+// before this feature existed doesn't require re-importing the PDF.
+function editImportedUnit(idx){
+  const unit = contentLibrary.units[idx];
+  if(!unit) return;
+  const extracted = {
+    name: unit.name, points: unit.points, stats: unit.stats,
+    weapons: unit.weapons, abilities: unit.abilities, keywords: unit.keywords,
+    _needs_review: false
+  };
+  renderWarscrollReview(extracted, unit.faction, null, (corrected) => {
+    contentLibrary.units[idx] = corrected;
+    saveContentLibrary();
+    closeSheet();
+    renderManageUnits();
+  });
+}
+
+/* ---- Manage Spells & Artifacts: same edit-in-place pattern as units ---- */
+
+function renderManageLore(){
+  const spellsHtml = contentLibrary.spells.map((s,i) => `
+    <div class="pick-card wide">
+      <div class="pick-top">
+        <div class="pick-name">${escapeHtml(s.name)}</div>
+        <span class="pick-pts">${s.castingValue}+</span>
+      </div>
+      <div class="pick-text">${escapeHtml(s.lore)}${s.modifiers && s.modifiers.length ? ' · 🎯 ' + escapeHtml(s.modifiers[0].label) : ''}</div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <div class="mini-btn" onclick="editLoreItem('spells',${i})">Edit / Add Modifier</div>
+        <div class="mini-btn danger" onclick="deleteLoreItem('spells',${i})">Remove</div>
+      </div>
+    </div>
+  `).join('');
+
+  const artifactsHtml = contentLibrary.artifacts.map((a,i) => `
+    <div class="pick-card wide">
+      <div class="pick-top">
+        <div class="pick-name">${escapeHtml(a.name)}</div>
+      </div>
+      <div class="pick-text">${escapeHtml(a.lore)}${a.modifiers && a.modifiers.length ? ' · 🎯 ' + escapeHtml(a.modifiers[0].label) : ''}</div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <div class="mini-btn" onclick="editLoreItem('artifacts',${i})">Edit / Add Modifier</div>
+        <div class="mini-btn danger" onclick="deleteLoreItem('artifacts',${i})">Remove</div>
+      </div>
+    </div>
+  `).join('');
+
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div style="display:flex; align-items:center;">
+          <div class="back-chevron" onclick="renderManageUnits()">‹</div>
+          <div class="navtitle">Spells &amp; Artifacts</div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding-bottom:20px;">
+      <div class="ws-section-title">Spells (${contentLibrary.spells.length})</div>
+      ${contentLibrary.spells.length ? spellsHtml : `<div style="padding:0 18px; font-size:11.5px; color:var(--text-lo);">None imported yet.</div>`}
+      <div class="ws-section-title">Artifacts (${contentLibrary.artifacts.length})</div>
+      ${contentLibrary.artifacts.length ? artifactsHtml : `<div style="padding:0 18px; font-size:11.5px; color:var(--text-lo);">None imported yet.</div>`}
+    </div>
+  `;
+}
+
+function deleteLoreItem(kind, idx){
+  const arr = kind === 'spells' ? contentLibrary.spells : contentLibrary.artifacts;
+  if(!confirm(`Remove "${arr[idx].name}"?`)) return;
+  arr.splice(idx,1);
+  saveContentLibrary();
+  renderManageLore();
+}
+
+// Reuses the exact same single-item modifier editor as the import review
+// screen, just pre-filled and saving back into the existing array slot
+// instead of merging a fresh import.
+function editLoreItem(kind, idx){
+  const arr = kind === 'spells' ? contentLibrary.spells : contentLibrary.artifacts;
+  const item = arr[idx];
+  const isSpells = kind === 'spells';
+  const state = {
+    name: item.name, lore: item.lore, text: item.text,
+    castingValue: item.castingValue || 6,
+    _hasModifier: !!(item.modifiers && item.modifiers.length),
+    _mod: (item.modifiers && item.modifiers[0]) ? { ...item.modifiers[0] } : { stat:'hit', op:'add', value:1, label:'' }
+  };
+  const STAT_OPTIONS = isSpells
+    ? [['hit','To Hit'],['wound','To Wound'],['rend','Rend'],['damage','Damage'],['attacks','Attacks'],['save','Enemy/Target Save']]
+    : [['hit','To Hit'],['wound','To Wound'],['rend','Rend'],['damage','Damage'],['attacks','Attacks']];
+
+  function draw(){
+    sheetRoot.innerHTML = `
+      <div class="sheet-overlay show" id="pickerOverlay">
+        <div class="sheet" style="max-height:80%">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <div class="sheet-title">Edit ${isSpells?'Spell':'Artifact'}</div>
+            <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+          </div>
+          <div class="sheet-body">
+            <input class="form-input" value="${escapeHtml(state.name)}" oninput="window.__el_name(this.value)" placeholder="Name">
+            <input class="form-input" value="${escapeHtml(state.lore)}" oninput="window.__el_lore(this.value)" placeholder="Lore / Faction">
+            ${isSpells ? `<input class="calc-input" style="width:70px; margin-bottom:12px;" value="${state.castingValue}" oninput="window.__el_cv(this.value)" placeholder="CV">` : ''}
+            <textarea class="form-input" style="min-height:60px;" oninput="window.__el_text(this.value)">${escapeHtml(state.text)}</textarea>
+
+            <div style="border-top:1px solid var(--line); padding-top:10px; margin-top:6px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="font-size:11px; color:var(--text-md);">Apply as dice calculator modifier?</div>
+                <div class="toggle ${state._hasModifier?'on':''}" onclick="window.__el_toggleMod()"><div class="toggle-knob"></div></div>
+              </div>
+              ${state._hasModifier ? `
+                <div style="display:flex; gap:6px; margin:8px 0 6px 0;">
+                  <select class="form-input" style="margin:0; flex:1.3;" onchange="window.__el_modStat(this.value)">
+                    ${STAT_OPTIONS.map(([val,label])=>`<option value="${val}" ${state._mod.stat===val?'selected':''}>${label}</option>`).join('')}
+                  </select>
+                  <select class="form-input" style="margin:0; flex:1;" onchange="window.__el_modOp(this.value)">
+                    <option value="add" ${state._mod.op==='add'?'selected':''}>Add</option>
+                    <option value="set" ${state._mod.op==='set'?'selected':''}>Set to</option>
+                  </select>
+                  <input class="calc-input" style="width:56px;" type="number" value="${state._mod.value}" oninput="window.__el_modValue(this.value)">
+                </div>
+                <input class="form-input" style="margin:0;" placeholder="Chip label" value="${escapeHtml(state._mod.label)}" oninput="window.__el_modLabel(this.value)">
+              ` : ''}
+            </div>
+          </div>
+          <div class="form-create-btn" onclick="window.__el_save()">Save</div>
+        </div>
+      </div>
+    `;
+  }
+  window.__el_name = v => state.name = v;
+  window.__el_lore = v => state.lore = v;
+  window.__el_text = v => state.text = v;
+  window.__el_cv = v => state.castingValue = parseInt(v)||6;
+  window.__el_toggleMod = () => {
+    state._hasModifier = !state._hasModifier;
+    if(state._hasModifier && !state._mod.label){
+      const sign = state._mod.op==='add' ? (state._mod.value>=0?'+':'') : 'Set to ';
+      state._mod.label = `${sign}${state._mod.value} ${state._mod.stat}`;
+    }
+    draw();
+  };
+  window.__el_modStat = v => { state._mod.stat = v; draw(); };
+  window.__el_modOp = v => { state._mod.op = v; draw(); };
+  window.__el_modValue = v => { state._mod.value = parseInt(v)||0; };
+  window.__el_modLabel = v => { state._mod.label = v; };
+  window.__el_save = () => {
+    item.name = state.name;
+    item.lore = state.lore;
+    item.text = state.text;
+    if(isSpells) item.castingValue = state.castingValue;
+    if(state._hasModifier){
+      item.modifiers = [{
+        stat: state._mod.stat, op: state._mod.op, value: state._mod.value,
+        label: state._mod.label || `${state._mod.op==='add'?'+':'Set to '}${state._mod.value} ${state._mod.stat}`,
+        side: (state._mod.stat === 'save') ? 'defender' : undefined
+      }];
+    } else {
+      delete item.modifiers;
+    }
+    saveContentLibrary();
+    closeSheet();
+    renderManageLore();
+  };
+  draw();
+}
+
+/* ---- Settings: export/import everything, storage usage, clear data ---- */
+
+function estimateStorageBytes(){
+  let total = 0;
+  for (const key in localStorage) {
+    if (key.startsWith(STORAGE_PREFIX)) {
+      total += (localStorage.getItem(key) || '').length;
+    }
+  }
+  return total;
+}
+
+function renderSettings(){
+  const bytes = estimateStorageBytes();
+  const kb = (bytes / 1024).toFixed(1);
+  const artBytes = homeArtPool.reduce((s,a) => s + (a?.length||0), 0);
+  const artKb = (artBytes / 1024).toFixed(0);
+
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div style="display:flex; align-items:center;">
+          <div class="back-chevron" onclick="switchTab('builder')">‹</div>
+          <div class="navtitle">Settings</div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding-bottom:24px;">
+      <div class="ws-section-title">Storage</div>
+      <div class="ws-statblock" style="margin:0 18px;">
+        <div class="ws-stat"><div class="v">${savedLists.length}</div><div class="l">Lists</div></div>
+        <div class="ws-stat"><div class="v">${ContentLibraryUnitCount()}</div><div class="l">Units</div></div>
+        <div class="ws-stat"><div class="v">${contentLibrary.spells.length + contentLibrary.artifacts.length}</div><div class="l">Spells/Artifacts</div></div>
+        <div class="ws-stat"><div class="v">${homeArtPool.length}</div><div class="l">Art Images</div></div>
+      </div>
+      <div style="padding:10px 18px 0 18px; font-size:11px; color:var(--text-lo); line-height:1.6;">
+        Total on device: ${kb} KB (art images: ~${artKb} KB of that). Everything is stored locally in this browser/app instance only — nothing is uploaded anywhere. iOS can clear this data if the app goes unused for a long time, so back up anything important using Export below.
+      </div>
+
+      <div class="ws-section-title">Backup — Lists &amp; Content</div>
+      <div style="margin:0 18px;">
+        <div class="pick-card" onclick="exportAllData(false)">
+          <div class="pick-name">⬆️ Export Lists + Imported Content</div>
+          <div class="pick-sub">Army lists, imported units, spells, artifacts, and rule sections. Small file, no images.</div>
+        </div>
+        <div class="pick-card" onclick="exportAllData(true)">
+          <div class="pick-name">⬆️ Export Everything (incl. Images)</div>
+          <div class="pick-sub">All of the above plus unit photos, warscroll scans, and home screen art. Larger file (~${artKb} KB+).</div>
+        </div>
+        <div class="pick-card" onclick="document.getElementById('importAllFile').click()">
+          <div class="pick-name">⬇️ Restore from Backup</div>
+          <div class="pick-sub">Merges everything from a previously exported file — works with either export type above.</div>
+        </div>
+        <input type="file" id="importAllFile" accept="application/json" style="display:none" onchange="importAllData(this.files[0])">
+      </div>
+
+      <div class="ws-section-title">Danger Zone</div>
+      <div style="margin:0 18px;">
+        <div class="pick-card" onclick="clearAllData()" style="border-color:var(--danger);">
+          <div class="pick-name" style="color:var(--danger);">🗑 Erase All App Data</div>
+          <div class="pick-sub">Deletes every list, imported unit/spell/artifact, and image from this device. Cannot be undone.</div>
+        </div>
+      </div>
+
+      <div class="ws-section-title">About</div>
+      <div style="margin:0 18px; padding:12px 14px; background:var(--bg-1); border:1px solid var(--line); border-radius:12px; font-size:11.5px; color:var(--text-md); line-height:1.6;">
+        Warscroll Companion — installed as a Home Screen web app. Works offline once loaded. No account, no tracking, no ads.
+      </div>
+    </div>
+  `;
+}
+
+// Full backup payload. `includeImages` controls whether homeArtPool (which
+// can be several MB of base64 JPEGs) and unit/warscroll photos are included
+// — kept optional because most of the time you actually care about getting
+// your lists and imported battletome data back, not re-downloading photos
+// you could just re-import from your camera roll again anyway.
+function exportAllData(includeImages){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version: 2,
+    includesImages: !!includeImages,
+    lists: includeImages ? savedLists : stripImagesFromLists(savedLists),
+    contentLibrary: includeImages ? contentLibrary : stripImagesFromLibrary(contentLibrary),
+    homeArtPool: includeImages ? homeArtPool : [],
+    calcSituational: calcState.situational
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const suffix = includeImages ? 'full' : 'lists';
+  a.download = `warscroll_backup_${suffix}_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Deep-clones and blanks out photo fields so the lightweight export doesn't
+// carry multi-MB base64 strings for images you can just re-import later.
+function stripImagesFromLists(lists){
+  return JSON.parse(JSON.stringify(lists)).map(list => {
+    list.entries.forEach(e => { if(e.unit) e.unit.photo = null; });
+    return list;
+  });
+}
+function stripImagesFromLibrary(lib){
+  const clone = JSON.parse(JSON.stringify(lib));
+  (clone.units||[]).forEach(u => { u.photo = null; });
+  return clone;
+}
+
+function importAllData(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    let payload;
+    try {
+      payload = JSON.parse(e.target.result);
+    } catch (err) {
+      alert('Could not read that file as a valid backup.');
+      return;
+    }
+
+    // Back-compat: the original export format was just { lists: [...] }.
+    // version 2 adds contentLibrary/homeArtPool/calcSituational alongside.
+    const incomingLists = Array.isArray(payload) ? payload : (payload.lists || []);
+    const incomingLibrary = payload.contentLibrary || null;
+    const incomingArt = payload.homeArtPool || [];
+    const incomingSituational = payload.calcSituational || null;
+
+    let importedCounts = [];
+
+    if(incomingLists.length > 0){
+      const reIded = incomingLists.map(list => ({
+        ...list,
+        id: makeId(),
+        entries: (list.entries || []).map(entry => ({ ...entry, id: undefined }))
+      }));
+      savedLists.push(...reIded);
+      storageSave('savedLists', savedLists);
+      importedCounts.push(`${reIded.length} list(s)`);
+    }
+
+    if(incomingLibrary){
+      let unitCount = 0, spellCount = 0, artifactCount = 0, ruleCount = 0;
+      if(Array.isArray(incomingLibrary.units)){
+        mergeByName(contentLibrary.units, incomingLibrary.units, u => u.name + '|' + u.faction);
+        unitCount = incomingLibrary.units.length;
+      }
+      if(Array.isArray(incomingLibrary.spells)){
+        mergeByName(contentLibrary.spells, incomingLibrary.spells, s => s.name);
+        spellCount = incomingLibrary.spells.length;
+      }
+      if(Array.isArray(incomingLibrary.artifacts)){
+        mergeByName(contentLibrary.artifacts, incomingLibrary.artifacts, a => a.name);
+        artifactCount = incomingLibrary.artifacts.length;
+      }
+      if(Array.isArray(incomingLibrary.ruleSections)){
+        mergeByName(contentLibrary.ruleSections, incomingLibrary.ruleSections, s => s.name);
+        ruleCount = incomingLibrary.ruleSections.length;
+      }
+      saveContentLibrary();
+      if(unitCount) importedCounts.push(`${unitCount} unit(s)`);
+      if(spellCount) importedCounts.push(`${spellCount} spell(s)`);
+      if(artifactCount) importedCounts.push(`${artifactCount} artifact(s)`);
+      if(ruleCount) importedCounts.push(`${ruleCount} rule section(s)`);
+    }
+
+    if(incomingArt.length > 0){
+      homeArtPool.push(...incomingArt);
+      storageSave('homeArtPool', homeArtPool);
+      if(!currentHeroArt) pickHeroArt();
+      importedCounts.push(`${incomingArt.length} art image(s)`);
+    }
+
+    if(incomingSituational){
+      calcState.situational = { ...calcState.situational, ...incomingSituational };
+      saveSituationalDefaults();
+    }
+
+    if(importedCounts.length === 0){
+      alert('That backup file was valid JSON but contained nothing recognizable to import.');
+      return;
+    }
+    alert(`Restored: ${importedCounts.join(', ')}.`);
+    renderSettings();
+  };
+  reader.readAsText(file);
+}
+
+function clearAllData(){
+  if(!confirm('This deletes every list, imported unit/spell/artifact, and image from this device. This cannot be undone. Continue?')) return;
+  for (const key in localStorage) {
+    if (key.startsWith(STORAGE_PREFIX)) localStorage.removeItem(key);
+  }
+  savedLists = [];
+  homeArtPool = [];
+  currentHeroArt = null;
+  activeListId = null;
+  contentLibrary = { units: [], spells: [], artifacts: [], ruleSections: [] };
+  calcState.situational = {};
+  switchTab('builder');
+}
+
+function openList(id){
+  activeListId = id;
+  render();
+}
+function backToLibrary(){
+  activeListId = null;
+  render();
+}
+
+function openListOptions(id){
+  const list = savedLists.find(l=>l.id===id);
+  if(!list) return;
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeSheet()">
+      <div class="sheet" style="max-height:40%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">${escapeHtml(list.name)}</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div style="padding:10px 18px 20px 18px;">
+          <div class="pick-card" onclick="duplicateList('${id}')">
+            <div class="pick-name">📋 Duplicate List</div>
+          </div>
+          <div class="pick-card" onclick="exportList('${id}')">
+            <div class="pick-name">⬆️ Export as JSON</div>
+          </div>
+          <div class="pick-card" onclick="deleteList('${id}')" style="border-color:var(--danger);">
+            <div class="pick-name" style="color:var(--danger);">🗑 Delete List</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay').classList.add('show'));
+}
+function duplicateList(id){
+  const list = savedLists.find(l=>l.id===id);
+  if(!list) return;
+  const copy = JSON.parse(JSON.stringify(list));
+  copy.id = makeId();
+  copy.name = list.name.endsWith('(Copy)') ? list.name + ' 2' : list.name + ' (Copy)';
+  copy.createdAt = Date.now();
+  copy.updatedAt = Date.now();
+  // Fresh entry IDs so editing the copy never touches the original
+  copy.entries = copy.entries.map(e => ({ ...e, unit: { ...e.unit } }));
+  savedLists.push(copy);
+  storageSave('savedLists', savedLists);
+  closeSheet();
+  render();
+}
+function deleteList(id){
+  if(!confirm('Delete this list? This cannot be undone.')) return;
+  savedLists = savedLists.filter(l=>l.id!==id);
+  storageSave('savedLists', savedLists);
+  if(activeListId===id) activeListId = null;
+  closeSheet();
+  render();
+}
+function exportList(id){
+  const list = savedLists.find(l=>l.id===id);
+  if(!list) return;
+  const blob = new Blob([JSON.stringify(list, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${list.name.replace(/[^a-z0-9]/gi,'_')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  closeSheet();
+}
+
+/* ---- New list creation form ---- */
+
+const FACTIONS = ['Stormcast Eternals','Nighthaunt','Sons of Behemat','Kruleboyz','Ossiarch Bonereapers','Soulblight Gravelords'];
+function allFactionChoices(){
+  const imported = contentLibrary.units.map(u => u.faction);
+  return Array.from(new Set([...FACTIONS, ...imported])).sort();
+}
+const POINTS_OPTIONS = [1000,1500,2000,2500,3000];
+
+function openNewListForm(){
+  newListDraft = { name:'', faction:'Stormcast Eternals', pointsLimit:2000 };
+  renderNewListForm();
+}
+function renderNewListForm(){
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div style="display:flex; align-items:center;">
+          <div class="back-chevron" onclick="backToLibrary()">‹</div>
+          <div>
+            <div class="navtitle">New Army List</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1; overflow-y:auto;">
+      <div class="form-section">
+        <div class="form-label">List Name</div>
+        <input class="form-input" placeholder="e.g. Vanguard Strike Force" value="${escapeHtml(newListDraft.name)}"
+          oninput="newListDraft.name=this.value">
+      </div>
+      <div class="form-section">
+        <div class="form-label">Faction</div>
+        <div class="chip-row">
+          ${allFactionChoices().map(f=>`<div class="chip ${newListDraft.faction===f?'selected':''}" onclick="selectFaction('${f}')">${f}</div>`).join('')}
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-label">Points Limit</div>
+        <div class="pts-row">
+          ${POINTS_OPTIONS.map(p=>`<div class="pts-chip ${newListDraft.pointsLimit===p?'selected':''}" onclick="selectPoints(${p})">${p}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="form-create-btn" onclick="createList()">Create List</div>
+  `;
+}
+function selectFaction(f){ newListDraft.faction = f; renderNewListForm(); }
+function selectPoints(p){ newListDraft.pointsLimit = p; renderNewListForm(); }
+function createList(){
+  const name = newListDraft.name.trim() || `${newListDraft.faction} List`;
+  const list = {
+    id: makeId(),
+    name,
+    faction: newListDraft.faction,
+    pointsLimit: newListDraft.pointsLimit,
+    entries: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  savedLists.push(list);
+  activeListId = list.id;
+  storageSave('savedLists', savedLists);
+  render();
+}
+
+/* ---- Builder screen for the currently open list ---- */
+
+function renderBuilder(){
+  const list = getActiveList();
+  if(!list){ backToLibrary(); return; }
+
+  const total = armyTotalPoints(list);
+  const remaining = list.pointsLimit - total;
+  const over = remaining < 0;
+  const pct = Math.min(1, total / list.pointsLimit);
+  const circumference = 2 * Math.PI * 20;
+  const offset = circumference * (1 - pct);
+  const issues = validationIssues(list);
+
+  let entriesHtml = '';
+  if(list.entries.length === 0){
+    entriesHtml = `
+      <div class="empty-state">
+        <div class="glyph">⚔️</div>
+        <div class="title">No units yet</div>
+        <div class="sub">Tap the gold button below to add your first<br>unit to ${escapeHtml(list.faction)}.</div>
+      </div>`;
+  } else {
+    entriesHtml = list.entries.map((entry, idx) => {
+      const u = entry.unit;
+      const pts = unitTotalPoints(entry);
+      const modelCount = u.baseSize + (entry.reinforcements * (u.reinforceIncrement||0));
+      const displayName = (entry.nickname && entry.nickname.trim()) ? entry.nickname.trim() : u.name;
+
+      const portraitInner = u.photo ? '' : (SILHOUETTES[u.silhouette] || SILHOUETTES.infantry);
+      const portraitStyle = u.photo ? ` style="background-image:url('${u.photo.replace(/'/g,"\\'")}'); background-size:cover; background-position:center;"` : '';
+
+      let loadoutHtml = '';
+      if(u.keywords.includes('HERO')){
+        loadoutHtml += entry.artifact
+          ? `<div class="loadout-chip" onclick="openArtifactPicker(${idx})"><span class="icon">💠</span><div class="body"><div class="lname">${escapeHtml(entry.artifact.name)}</div><div class="lsub">Artifact of Power</div></div><span class="chevron">›</span></div>`
+          : `<div class="loadout-chip empty" onclick="openArtifactPicker(${idx})"><span class="icon">💠</span><div class="body"><div class="lname">Assign Artifact</div><div class="lsub">Optional</div></div><span class="chevron">›</span></div>`;
+      }
+      if(u.keywords.includes('WIZARD')){
+        loadoutHtml += entry.spell
+          ? `<div class="loadout-chip" onclick="openSpellPicker(${idx})"><span class="icon">✦</span><div class="body"><div class="lname">${escapeHtml(entry.spell.name)}</div><div class="lsub">Casting ${entry.spell.castingValue}+</div></div><span class="chevron">›</span></div>`
+          : `<div class="loadout-chip empty" onclick="openSpellPicker(${idx})"><span class="icon">✦</span><div class="body"><div class="lname">Choose Spell</div><div class="lsub">Lore of the Realms</div></div><span class="chevron">›</span></div>`;
+      }
+
+      return `
+      <div class="entry-card ${entry.isGeneral?'general':''}">
+        <div class="entry-top">
+          <div class="entry-portrait ${u.photo?'has-photo':''}"${portraitStyle} onclick="openPhotoPicker(${idx})">
+            ${portraitInner}
+            <div class="add-photo-badge">📷</div>
+          </div>
+          <div class="entry-main">
+            <div class="entry-name-row" onclick="openRenameEntry(${idx})" style="cursor:pointer;">
+              <span class="entry-name">${escapeHtml(displayName)}</span>
+              ${entry.isGeneral ? '<span class="general-badge">General</span>' : ''}
+            </div>
+            ${entry.nickname && entry.nickname.trim() ? `<div class="entry-keywords" style="color:var(--text-md);">${escapeHtml(u.name)}</div>` : ''}
+            <div class="entry-keywords">${u.keywords.join(' · ')}</div>
+          </div>
+          <div>
+            <div class="entry-points">${pts} pts</div>
+            <div class="entry-reinforce">${modelCount} models</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-badge"><div class="val">${u.stats.move}</div><div class="lbl">Move</div></div>
+          <div class="stat-badge"><div class="val">${u.stats.health}</div><div class="lbl">Wounds</div></div>
+          <div class="stat-badge"><div class="val">${u.stats.save}+</div><div class="lbl">Save</div></div>
+          ${u.stats.ward ? `<div class="stat-badge"><div class="val">${u.stats.ward}+</div><div class="lbl">Ward</div></div>` : ''}
+          <div class="stat-badge"><div class="val">${u.stats.control}</div><div class="lbl">OC</div></div>
+        </div>
+        ${loadoutHtml ? `<div class="loadout-row">${loadoutHtml}</div>` : ''}
+        <div class="entry-actions">
+          <div class="mini-btn ${entry.isGeneral?'active':''}" onclick="toggleGeneral(${idx})">★ ${entry.isGeneral?'Is General':'Make General'}</div>
+          <div class="mini-btn" onclick="openRenameEntry(${idx})">✎ Name</div>
+          ${u.reinforceIncrement ? `<div class="mini-btn" onclick="reinforce(${idx})">+ Reinforce</div>` : ''}
+          <div class="mini-btn danger" onclick="removeEntry(${idx})">Remove</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div style="display:flex; align-items:center; min-width:0;">
+          <div class="back-chevron" onclick="backToLibrary()">‹</div>
+          <div style="min-width:0; cursor:pointer;" onclick="openRenameList()">
+            <div class="navtitle" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(list.name)}</div>
+            <div class="navsub">${escapeHtml(list.faction)}</div>
+          </div>
+        </div>
+        <div class="icon-btn" onclick="openUnitPicker()">＋</div>
+      </div>
+    </div>
+    <div class="points-header">
+      <div class="points-main">
+        <div class="points-value">${total} <span class="of">/ ${list.pointsLimit} pts</span></div>
+        <div class="points-remaining ${over?'over':''}">${over ? `${-remaining} over limit` : `${remaining} remaining`}</div>
+      </div>
+      <div class="ring">
+        <svg width="52" height="52">
+          <circle class="ring-bg" cx="26" cy="26" r="20" stroke-width="4" fill="none"/>
+          <circle class="ring-fg ${over?'over':''}" cx="26" cy="26" r="20" stroke-width="4" fill="none"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    ${issues.length ? `
+      <div class="validation-banner">
+        ${issues.map(i=>`<div class="validation-item"><span class="dot"></span>${escapeHtml(i)}</div>`).join('')}
+      </div>` : ''}
+    <div class="list-area">${entriesHtml}</div>
+    ${list.entries.length ? '<div class="fab" onclick="openUnitPicker()">＋</div>' : ''}
+  `;
+}
+
+function openRenameList(){
+  const list = getActiveList();
+  if(!list) return;
+  const newName = prompt('Rename list:', list.name);
+  if(newName !== null && newName.trim()){
+    list.name = newName.trim();
+    touchList(list);
+  }
+}
+
+function openRenameEntry(idx){
+  const list = getActiveList();
+  const entry = list.entries[idx];
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeSheet()">
+      <div class="sheet" style="max-height:40%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">Name Unit</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div style="padding: 6px 18px 4px 18px; font-size:11.5px; color:var(--text-lo); line-height:1.5;">
+          Give this ${escapeHtml(entry.unit.name)} a name of your own — a hero's name, or a nickname for the unit.
+        </div>
+        <div style="padding: 12px 18px;">
+          <input id="nicknameInput" class="form-input" style="margin-bottom:12px;" placeholder="${escapeHtml(entry.unit.name)}" value="${escapeHtml(entry.nickname||'')}">
+          <div class="form-create-btn" style="margin:0;" onclick="saveNickname(${idx})">Save</div>
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay').classList.add('show'));
+}
+function saveNickname(idx){
+  const list = getActiveList();
+  const input = document.getElementById('nicknameInput');
+  list.entries[idx].nickname = input.value.trim();
+  closeSheet();
+  touchList(list);
+}
+
+function renderCalc(){
+  const s = calcState;
+  const baseInput = {
+    attacks: parseDiceAverage(s.attacks),
+    toHit: s.toHit, toWound: s.toWound, rend: s.rend,
+    damage: parseDiceAverage(s.damage),
+    targetSave: s.targetSave,
+    targetWard: s.hasWard ? s.targetWard : null,
+    hitMod: s.hitMod, woundMod: s.woundMod
+  };
+
+  // Combine: active artifact/spell modifier chips + any non-zero situational
+  // toggle values, then fold them all into the base input in one pass so
+  // the result reflects everything currently switched on.
+  const situationalActive = SITUATIONAL_MODIFIER_DEFAULTS
+    .filter(def => (s.situational[def.key] || 0) !== 0)
+    .map(def => ({ ...def, value: s.situational[def.key] }));
+  const allActiveMods = [...s.activeModifiers, ...situationalActive];
+  const input = applyModifiers(baseInput, allActiveMods);
+  const r = calculate(input);
+
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div>
+          <div class="navtitle">Dice Calculator</div>
+          <div class="navsub">Expected Combat Outcome</div>
+        </div>
+        <div class="icon-btn" onclick="toggleCompareMode()" style="${compareMode ? 'background:rgba(201,162,75,0.2); border-color:var(--gold);' : ''}">⇄</div>
+      </div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding-bottom:24px;">
+      ${compareMode ? `
+      <div class="calc-section">
+        <div class="calc-section-title">Compare Loadouts</div>
+        <div style="font-size:10.5px; color:var(--text-lo); padding:0 0 10px 0; line-height:1.5;">
+          Set up the attacker below (pick a unit/weapon, or enter manually), then save it as Loadout A. Change the attacker to whatever you want to compare against — same defender both times.
+        </div>
+        ${compareLoadoutA ? `
+          <div class="loadout-chip" style="margin-bottom:10px; border-color:var(--gold);">
+            <span class="icon">🅰️</span>
+            <div class="body">
+              <div class="lname">${escapeHtml(compareLoadoutA.label)}</div>
+              <div class="lsub">${compareLoadoutA.result.expDamage.toFixed(2)} avg damage — saved</div>
+            </div>
+            <span onclick="clearLoadoutA()" style="color:var(--text-lo); font-size:16px; padding:0 4px; cursor:pointer;">✕</span>
+          </div>
+        ` : `
+          <div class="mini-btn" onclick="commitLoadoutA()">Save Current Attacker as Loadout A</div>
+        `}
+      </div>` : ''}
+
+      ${allActiveMods.length > 0 ? `
+      <div class="calc-section">
+        <div class="calc-section-title">Active Modifiers</div>
+        ${s.activeModifiers.map((m,i) => `
+          <div class="loadout-chip" style="margin-bottom:6px;">
+            <span class="icon">${m.side==='defender-entry'?'🛡️':'⚔️'}</span>
+            <div class="body">
+              <div class="lname">${escapeHtml(m.label)}</div>
+              <div class="lsub">from ${escapeHtml(m.source||'')}</div>
+            </div>
+            <span onclick="removeActiveModifier(${i})" style="color:var(--text-lo); font-size:16px; padding:0 4px; cursor:pointer;">✕</span>
+          </div>
+        `).join('')}
+        ${situationalActive.map(m => `
+          <div class="loadout-chip" style="margin-bottom:6px; border-color:rgba(201,162,75,0.5);">
+            <span class="icon">🎯</span>
+            <div class="body">
+              <div class="lname">${escapeHtml(m.label)}</div>
+              <div class="lsub">${m.value>0?'+':''}${m.value} to ${m.stat}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>` : ''}
+
+      <div class="calc-section">
+        <div class="calc-section-title">Attacker</div>
+
+        ${s.attackerUnitName ? `
+          <div class="loadout-chip" style="margin-bottom:10px;" onclick="openAttackerUnitPicker()">
+            <span class="icon">⚔️</span>
+            <div class="body">
+              <div class="lname">${escapeHtml(s.attackerUnitName)}</div>
+              <div class="lsub">${escapeHtml(s.attackerWeaponName || '')} · tap to change</div>
+            </div>
+            <span onclick="event.stopPropagation(); clearAttackerLink()" style="color:var(--text-lo); font-size:16px; padding:0 4px;">✕</span>
+          </div>
+        ` : `
+          <div class="loadout-chip empty" style="margin-bottom:10px;" onclick="openAttackerUnitPicker()">
+            <span class="icon">⚔️</span>
+            <div class="body">
+              <div class="lname">Pick a Unit &amp; Weapon</div>
+              <div class="lsub">Auto-fills the fields below, or enter manually</div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+        `}
+
+        <div class="calc-row">
+          <span class="calc-label">Attacks</span>
+          <input class="calc-input" value="${s.attacks}" oninput="calcState.attacks=this.value; calcState.attackerWeaponName=null; renderCalc()">
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">To Hit</span>
+          <div class="stepper">
+            <div class="stepper-btn" onclick="stepCalc('toHit',-1)">−</div>
+            <div class="stepper-val">${s.toHit}+</div>
+            <div class="stepper-btn" onclick="stepCalc('toHit',1)">+</div>
+          </div>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">To Wound</span>
+          <div class="stepper">
+            <div class="stepper-btn" onclick="stepCalc('toWound',-1)">−</div>
+            <div class="stepper-val">${s.toWound}+</div>
+            <div class="stepper-btn" onclick="stepCalc('toWound',1)">+</div>
+          </div>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">Rend</span>
+          <div class="stepper">
+            <div class="stepper-btn" onclick="stepCalc('rend',-1)">−</div>
+            <div class="stepper-val">-${s.rend}</div>
+            <div class="stepper-btn" onclick="stepCalc('rend',1)">+</div>
+          </div>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">Damage</span>
+          <input class="calc-input" value="${s.damage}" oninput="calcState.damage=this.value; calcState.attackerWeaponName=null; renderCalc()">
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">Hit Modifier</span>
+          <div class="stepper">
+            <div class="stepper-btn" onclick="stepCalc('hitMod',-1)">−</div>
+            <div class="stepper-val">${s.hitMod>=0?'+':''}${s.hitMod}</div>
+            <div class="stepper-btn" onclick="stepCalc('hitMod',1)">+</div>
+          </div>
+        </div>
+        <div class="calc-row" style="border-bottom:none;">
+          <span class="calc-label">Wound Modifier</span>
+          <div class="stepper">
+            <div class="stepper-btn" onclick="stepCalc('woundMod',-1)">−</div>
+            <div class="stepper-val">${s.woundMod>=0?'+':''}${s.woundMod}</div>
+            <div class="stepper-btn" onclick="stepCalc('woundMod',1)">+</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-section">
+        <div class="calc-section-title">Defender</div>
+
+        ${s.defenderUnitName ? `
+          <div class="loadout-chip" style="margin-bottom:10px;" onclick="openDefenderUnitPicker()">
+            <span class="icon">🛡️</span>
+            <div class="body">
+              <div class="lname">${escapeHtml(s.defenderUnitName)}</div>
+              <div class="lsub">tap to change</div>
+            </div>
+            <span onclick="event.stopPropagation(); clearDefenderLink()" style="color:var(--text-lo); font-size:16px; padding:0 4px;">✕</span>
+          </div>
+        ` : `
+          <div class="loadout-chip empty" style="margin-bottom:10px;" onclick="openDefenderUnitPicker()">
+            <span class="icon">🛡️</span>
+            <div class="body">
+              <div class="lname">Pick a Unit</div>
+              <div class="lsub">Auto-fills Save &amp; Ward, or enter manually</div>
+            </div>
+            <span class="chevron">›</span>
+          </div>
+        `}
+
+        <div class="calc-row">
+          <span class="calc-label">Save</span>
+          <div class="stepper">
+            <div class="stepper-btn" onclick="stepCalc('targetSave',-1)">−</div>
+            <div class="stepper-val">${s.targetSave}+</div>
+            <div class="stepper-btn" onclick="stepCalc('targetSave',1)">+</div>
+          </div>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">Has Ward Save</span>
+          <div class="toggle ${s.hasWard?'on':''}" onclick="calcState.hasWard=!calcState.hasWard; calcState.defenderUnitName=null; renderCalc()"><div class="toggle-knob"></div></div>
+        </div>
+        ${s.hasWard ? `
+        <div class="calc-row" style="border-bottom:none;">
+          <span class="calc-label">Ward</span>
+          <div class="stepper">
+            <div class="stepper-btn" onclick="stepCalc('targetWard',-1)">−</div>
+            <div class="stepper-val">${s.targetWard}+</div>
+            <div class="stepper-btn" onclick="stepCalc('targetWard',1)">+</div>
+          </div>
+        </div>` : ''}
+      </div>
+
+      <div class="calc-section">
+        <div class="calc-section-title">Situational</div>
+        <div style="font-size:10.5px; color:var(--text-lo); padding:0 0 10px 0; line-height:1.5;">
+          AoS has no single universal bonus for these — check your unit's own warscroll/battletome for the exact value, then dial it in here. Your values are remembered for next time.
+        </div>
+        ${SITUATIONAL_MODIFIER_DEFAULTS.map(def => `
+          <div class="calc-row">
+            <span class="calc-label">${escapeHtml(def.label)}</span>
+            <div class="stepper">
+              <div class="stepper-btn" onclick="stepSituational('${def.key}',-1)">−</div>
+              <div class="stepper-val">${(s.situational[def.key]||0)>=0?'+':''}${s.situational[def.key]||0}</div>
+              <div class="stepper-btn" onclick="stepSituational('${def.key}',1)">+</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="result-card">
+        <div class="result-row"><span class="rlabel">Expected Hits</span><span class="rval">${r.expHits.toFixed(2)}</span></div>
+        <div class="result-row"><span class="rlabel">Expected Wounds</span><span class="rval">${r.expWounds.toFixed(2)}</span></div>
+        <div class="result-row"><span class="rlabel">Unsaved Wounds</span><span class="rval">${r.expUnsaved.toFixed(2)}</span></div>
+        <div class="result-row final"><span class="rlabel">Damage Dealt</span><span class="rval">${r.expDamage.toFixed(2)}</span></div>
+        <div class="save-note">Effective save after rend: ${r.effectiveSave > 6 ? 'No save' : r.effectiveSave+'+'}</div>
+        ${allActiveMods.length > 0 ? `<div class="save-note" style="color:var(--gold-bright);">Includes ${allActiveMods.length} active modifier${allActiveMods.length===1?'':'s'}</div>` : ''}
+      </div>
+
+      ${compareMode && compareLoadoutA ? renderComparisonCard(compareLoadoutA, {
+        label: s.attackerUnitName ? `${s.attackerUnitName}${s.attackerWeaponName ? ' — ' + s.attackerWeaponName : ''}` : 'Current (Loadout B)',
+        result: r
+      }) : ''}
+    </div>
+  `;
+}
+
+function renderComparisonCard(a, b){
+  const diff = b.result.expDamage - a.result.expDamage;
+  const better = Math.abs(diff) < 0.01 ? null : (diff > 0 ? 'B' : 'A');
+  return `
+    <div class="calc-section">
+      <div class="calc-section-title">Comparison</div>
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1; background:var(--bg-1); border:1px solid ${better==='A'?'var(--gold)':'var(--line)'}; border-radius:12px; padding:12px;">
+          <div style="font-size:10px; font-weight:800; color:var(--text-lo); letter-spacing:0.5px; margin-bottom:4px;">LOADOUT A</div>
+          <div style="font-size:11px; color:var(--text-hi); margin-bottom:8px; line-height:1.3;">${escapeHtml(a.label)}</div>
+          <div style="font-family:'Oswald',sans-serif; font-size:22px; font-weight:700; color:${better==='A'?'var(--gold-bright)':'var(--text-hi)'};">${a.result.expDamage.toFixed(2)}</div>
+          <div style="font-size:9.5px; color:var(--text-lo);">avg damage</div>
+        </div>
+        <div style="flex:1; background:var(--bg-1); border:1px solid ${better==='B'?'var(--gold)':'var(--line)'}; border-radius:12px; padding:12px;">
+          <div style="font-size:10px; font-weight:800; color:var(--text-lo); letter-spacing:0.5px; margin-bottom:4px;">LOADOUT B (CURRENT)</div>
+          <div style="font-size:11px; color:var(--text-hi); margin-bottom:8px; line-height:1.3;">${escapeHtml(b.label)}</div>
+          <div style="font-family:'Oswald',sans-serif; font-size:22px; font-weight:700; color:${better==='B'?'var(--gold-bright)':'var(--text-hi)'};">${b.result.expDamage.toFixed(2)}</div>
+          <div style="font-size:9.5px; color:var(--text-lo);">avg damage</div>
+        </div>
+      </div>
+      ${better ? `<div class="save-note" style="color:var(--gold-bright); margin-top:8px;">Loadout ${better} deals ${Math.abs(diff).toFixed(2)} more damage on average</div>` : `<div class="save-note" style="margin-top:8px;">Both loadouts perform equally</div>`}
+    </div>
+  `;
+}
+
+function removeActiveModifier(i){
+  calcState.activeModifiers.splice(i,1);
+  renderCalc();
+}
+function stepSituational(key, delta){
+  calcState.situational[key] = (calcState.situational[key]||0) + delta;
+  saveSituationalDefaults();
+  renderCalc();
+}
+
+function renderRules(searchText){
+  searchText = searchText || '';
+
+  // Built-in demo entries plus anything imported via extract_pdf.py --type
+  // rules, reviewed, and saved. Imported sections are tagged so they can be
+  // visually distinguished and so re-importing the same section (matched by
+  // name) cleanly overwrites rather than duplicating.
+  const builtIn = RULES.map(r => ({...r, _imported:false}));
+  const imported = contentLibrary.ruleSections.map(r => ({...r, _imported:true}));
+  const all = [...builtIn, ...imported];
+
+  const filtered = searchText
+    ? all.filter(r =>
+        r.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        r.phase.toLowerCase().includes(searchText.toLowerCase()) ||
+        r.text.toLowerCase().includes(searchText.toLowerCase()))
+    : all;
+
+  // Group by phase so imported sections slot in next to the built-in ones
+  // for the same phase, rather than appearing as a disconnected second list.
+  const byPhase = {};
+  filtered.forEach(r => { (byPhase[r.phase] = byPhase[r.phase] || []).push(r); });
+  const phaseOrder = ['Hero Phase','Movement Phase','Shooting Phase','Charge Phase','Combat Phase','Battleshock Phase'];
+  const orderedPhases = [
+    ...phaseOrder.filter(p => byPhase[p]),
+    ...Object.keys(byPhase).filter(p => !phaseOrder.includes(p)).sort()
+  ];
+
+  const bodyHtml = orderedPhases.length === 0
+    ? `<div class="empty-state"><div class="glyph">📭</div><div class="title">No rules found</div></div>`
+    : orderedPhases.map(phase => `
+        <div class="ws-section-title">${escapeHtml(phase)}</div>
+        ${byPhase[phase].map(r => `
+          <div class="rule-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="rule-name">${escapeHtml(r.name)}</div>
+              ${r._imported ? '<span style="font-size:9px; font-weight:800; color:var(--gold-bright); background:rgba(201,162,75,0.12); border:1px solid rgba(201,162,75,0.35); padding:2px 6px; border-radius:6px; white-space:nowrap; margin-left:8px;">IMPORTED</span>' : ''}
+            </div>
+            <div class="rule-text">${escapeHtml(r.text)}</div>
+          </div>
+        `).join('')}
+      `).join('');
+
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div>
+          <div class="navtitle">Rules Reference</div>
+          <div class="navsub">${imported.length > 0 ? `Core Rules + ${imported.length} Imported Section(s)` : 'Core Rules Companion'}</div>
+        </div>
+      </div>
+    </div>
+    <div class="rules-search">
+      <div class="search-bar" onclick="promptRulesSearch()">🔍 ${searchText ? escapeHtml(searchText) + ' ✕' : 'Search phases & rules…'}</div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding-bottom:20px;">
+      ${bodyHtml}
+    </div>
+  `;
+}
+function promptRulesSearch(){
+  const current = document.querySelector('.rules-search .search-bar')?.textContent.includes('✕');
+  if(current){
+    renderRules('');
+    return;
+  }
+  const q = prompt('Search rules by phase, name, or text:', '');
+  if(q !== null) renderRules(q);
+}
+
+/* ---- Import screen: mirrors ImportView.swift's five import kinds ---- */
+
+const IMPORT_KINDS = [
+  { id:'battletome', icon:'📖', label:'Battletome (multi-unit)', help:'JSON from extract_pdf.py --type battletome' },
+  { id:'warscroll', icon:'🛡️', label:'Single Warscroll', help:'JSON from extract_pdf.py --type warscroll' },
+  { id:'rules', icon:'📋', label:'Core Rules', help:'JSON from extract_pdf.py --type rules' },
+  { id:'spells', icon:'✨', label:'Spell Lore', help:'JSON from extract_pdf.py --type spells' },
+  { id:'artifacts', icon:'💠', label:'Artifacts of Power', help:'JSON from extract_pdf.py --type artifacts' }
+];
+
+function renderImport(){
+  screen.innerHTML = `
+    <div class="navheader">
+      <div class="navtitle-row">
+        <div>
+          <div class="navtitle">Import Content</div>
+          <div class="navsub">From Your Own PDFs</div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding-bottom:24px;">
+      <div style="padding:14px 18px 4px 18px; font-size:11.5px; color:var(--text-lo); line-height:1.6;">
+        Run <code>extract_pdf.py</code> on your computer against PDFs you own, AirDrop or save the resulting JSON file to your phone, then tap the matching option below and pick that file. Everything is read and stored on this device only — nothing is uploaded anywhere, including GitHub.
+      </div>
+
+      <div class="ws-section-title">Import New Content</div>
+      <div style="margin:0 18px;">
+        ${IMPORT_KINDS.map(k => `
+          <div class="pick-card" style="margin-bottom:8px;" onclick="document.getElementById('importFile_${k.id}').click()">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="font-size:20px;">${k.icon}</div>
+              <div style="flex:1; min-width:0;">
+                <div class="pick-name">${k.label}</div>
+                <div class="pick-sub">${k.help}</div>
+              </div>
+              <span class="chevron" style="color:var(--text-lo);">›</span>
+            </div>
+          </div>
+          <input type="file" id="importFile_${k.id}" accept="application/json" style="display:none"
+                 onchange="handleImportFile(this.files[0], '${k.id}')">
+        `).join('')}
+      </div>
+
+      <div class="ws-section-title">Your Content Library</div>
+      <div class="ws-statblock" style="margin:0 18px;">
+        <div class="ws-stat"><div class="v">${ContentLibraryUnitCount()}</div><div class="l">Units</div></div>
+        <div class="ws-stat"><div class="v">${contentLibrary.spells.length}</div><div class="l">Spells</div></div>
+        <div class="ws-stat"><div class="v">${contentLibrary.artifacts.length}</div><div class="l">Artifacts</div></div>
+        <div class="ws-stat"><div class="v">${contentLibrary.ruleSections.length}</div><div class="l">Rule Sections</div></div>
+      </div>
+
+      <div style="margin:14px 18px 0 18px;">
+        <div class="pick-card" onclick="navGo('manageunits')">
+          <div class="pick-name">Manage Imported Units →</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Reads the JSON file you picked, does light shape-validation so a wrong
+// file type gives a clear error instead of a silent failure, then opens
+// the matching review sheet. Nothing here touches the network.
+function handleImportFile(file, kind){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    let data;
+    try {
+      data = JSON.parse(e.target.result);
+    } catch (err) {
+      alert('That file isn\'t valid JSON. Make sure you picked the file extract_pdf.py wrote out.');
+      return;
+    }
+    try {
+      openImportReview(kind, data, file.name);
+    } catch (err) {
+      alert(`That JSON doesn't look like ${kind} output (missing expected fields). Double check you ran extract_pdf.py --type ${kind}.`);
+    }
+  };
+  reader.onerror = () => alert('Could not read that file.');
+  reader.readAsText(file);
+}
+
+function openImportReview(kind, data, fileName){
+  if(kind === 'battletome'){
+    if(!Array.isArray(data.units)) throw new Error('missing units[]');
+    renderBattletomeReview(data, fileName);
+  } else if(kind === 'warscroll'){
+    if(!data.name) throw new Error('missing name');
+    renderWarscrollReview(data, data.faction || 'Imported', fileName, null);
+  } else if(kind === 'rules'){
+    if(!Array.isArray(data.sections)) throw new Error('missing sections[]');
+    renderRulesReview(data, fileName);
+  } else if(kind === 'spells' || kind === 'artifacts'){
+    if(!Array.isArray(data.items)) throw new Error('missing items[]');
+    renderLoreReview(kind, data, fileName);
+  }
+}
+
+// ---- Battletome review: pick which candidate units to bring in ----
+
+function renderBattletomeReview(data, fileName){
+  const excluded = new Set();
+  const faction = { value: data.faction || fileName.replace(/\.json$/i,'') };
+
+  function draw(){
+    sheetRoot.innerHTML = `
+      <div class="sheet-overlay show" id="pickerOverlay">
+        <div class="sheet" style="max-height:90%; height:90%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <div class="sheet-title">Review Battletome</div>
+            <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+          </div>
+          <div style="padding:10px 18px;">
+            <input class="form-input" style="margin-bottom:4px;" value="${escapeHtml(faction.value)}"
+              oninput="window.__factionEdit(this.value)" placeholder="Faction name">
+            ${data.unitCountWarning || data._unit_count_warning ? `<div style="font-size:11px; color:var(--gold); margin:6px 0 4px 0;">⚠ ${escapeHtml(data.unitCountWarning || data._unit_count_warning)}</div>` : ''}
+          </div>
+          <div class="sheet-body">
+            ${data.units.map((u, i) => `
+              <div class="pick-card wide" style="opacity:${excluded.has(i)?0.4:1}" onclick="window.__toggleUnit(${i})">
+                <div class="pick-top">
+                  <div class="pick-name">${excluded.has(i)?'○':'●'} ${escapeHtml(u.name || 'Unnamed')}</div>
+                  <span class="pick-pts">${u.points ? u.points+' pts' : 'no pts found'}</span>
+                </div>
+                <div class="pick-text">${(u.weapons||[]).length} weapon(s) found${u._needs_review ? ' · needs review' : ''}</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="form-create-btn" onclick="window.__importBattletome()">Import ${data.units.length - excluded.size} Unit(s)</div>
+        </div>
+      </div>
+    `;
+  }
+
+  window.__factionEdit = (v) => { faction.value = v; };
+  window.__toggleUnit = (i) => { excluded.has(i) ? excluded.delete(i) : excluded.add(i); draw(); };
+  window.__importBattletome = () => {
+    const toImport = data.units.filter((_, i) => !excluded.has(i));
+    const units = toImport.map(u => extractedToUnit(u, faction.value));
+    mergeByName(contentLibrary.units, units, u => u.name + '|' + u.faction);
+    saveContentLibrary();
+    closeSheet();
+    renderImport();
+  };
+  draw();
+}
+
+// ---- Single warscroll review: edit every field before saving ----
+
+function renderWarscrollReview(extracted, faction, fileName, onSaveBack){
+  // Abilities become a structured array (name/timing/text/modifier) rather
+  // than one big textarea, so each individual ability can optionally carry
+  // its own dice-calculator modifier — a unit's command ability might be a
+  // flat +1 to hit while its passive is a heal, and those need different
+  // treatment.
+  const initialAbilities = (extracted.abilities || []).map(a => {
+    if (typeof a === 'string') {
+      return { name: 'Ability', timing: 'Passive', text: a, _hasModifier: false, _mod: { stat:'hit', op:'add', value:1, label:'' } };
+    }
+    // Already-structured (e.g. re-editing a unit pulled back from the library)
+    return {
+      name: a.name || 'Ability', timing: a.timing || 'Passive', text: a.text || '',
+      _hasModifier: !!(a.modifiers && a.modifiers.length),
+      _mod: (a.modifiers && a.modifiers[0]) ? { ...a.modifiers[0] } : { stat:'hit', op:'add', value:1, label:'' }
+    };
+  });
+
+  const state = {
+    name: extracted.name || '',
+    points: extracted.points != null ? String(extracted.points) : '',
+    move: (extracted.stats && extracted.stats.move) || '',
+    health: (extracted.stats && extracted.stats.health != null) ? String(extracted.stats.health) : '',
+    save: (extracted.stats && extracted.stats.save != null) ? String(extracted.stats.save) : '',
+    ward: (extracted.stats && extracted.stats.ward != null) ? String(extracted.stats.ward) : '',
+    control: (extracted.stats && extracted.stats.control != null) ? String(extracted.stats.control) : '',
+    weapons: JSON.parse(JSON.stringify(extracted.weapons || [])),
+    abilities: initialAbilities,
+    keywords: (extracted.keywords || []).join(', ')
+  };
+
+  const STAT_OPTIONS = [['hit','To Hit'],['wound','To Wound'],['rend','Rend'],['damage','Damage'],['attacks','Attacks'],['save','This Unit\'s Save']];
+
+  function draw(){
+    sheetRoot.innerHTML = `
+      <div class="sheet-overlay show" id="pickerOverlay">
+        <div class="sheet" style="max-height:92%; height:92%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <div class="sheet-title">Review Unit</div>
+            <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+          </div>
+          <div class="sheet-body">
+            ${extracted._needs_review !== false ? `<div style="font-size:11px; color:var(--gold); margin-bottom:10px;">⚠ Auto-extracted — check every field against the real warscroll.</div>` : ''}
+
+            <div class="form-label">Name</div>
+            <input class="form-input" value="${escapeHtml(state.name)}" oninput="window.__u_name(this.value)">
+            <div class="form-label">Points</div>
+            <input class="form-input" type="number" value="${escapeHtml(state.points)}" oninput="window.__u_points(this.value)">
+
+            <div class="form-label">Stats</div>
+            <div style="display:flex; gap:8px; margin-bottom:16px;">
+              <input class="calc-input" style="flex:1;" placeholder="Move" value="${escapeHtml(state.move)}" oninput="window.__u_move(this.value)">
+              <input class="calc-input" style="flex:1;" placeholder="Wounds" value="${escapeHtml(state.health)}" oninput="window.__u_health(this.value)">
+              <input class="calc-input" style="flex:1;" placeholder="Save" value="${escapeHtml(state.save)}" oninput="window.__u_save(this.value)">
+              <input class="calc-input" style="flex:1;" placeholder="Ward" value="${escapeHtml(state.ward)}" oninput="window.__u_ward(this.value)">
+              <input class="calc-input" style="flex:1;" placeholder="OC" value="${escapeHtml(state.control)}" oninput="window.__u_control(this.value)">
+            </div>
+
+            <div class="form-label">Weapons (${state.weapons.length})</div>
+            ${state.weapons.map((w,i)=>`
+              <div style="background:var(--bg-1); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px;">
+                <input class="form-input" style="margin-bottom:6px;" value="${escapeHtml(w.name||'')}" placeholder="Weapon name" oninput="window.__w_name(${i},this.value)">
+                <div style="display:flex; gap:6px;">
+                  <input class="calc-input" style="flex:1;" placeholder="Atk" value="${escapeHtml(w.attacks||'')}" oninput="window.__w_attacks(${i},this.value)">
+                  <input class="calc-input" style="flex:1;" placeholder="Hit" value="${w.toHit ?? ''}" oninput="window.__w_toHit(${i},this.value)">
+                  <input class="calc-input" style="flex:1;" placeholder="Wound" value="${w.toWound ?? ''}" oninput="window.__w_toWound(${i},this.value)">
+                  <input class="calc-input" style="flex:1;" placeholder="Rend" value="${w.rend ?? ''}" oninput="window.__w_rend(${i},this.value)">
+                  <input class="calc-input" style="flex:1;" placeholder="Dmg" value="${escapeHtml(w.damage||'')}" oninput="window.__w_damage(${i},this.value)">
+                </div>
+              </div>
+            `).join('')}
+            <div class="mini-btn" style="margin-bottom:16px;" onclick="window.__w_add()">+ Add Weapon</div>
+
+            <div class="form-label">Abilities (${state.abilities.length})</div>
+            ${state.abilities.map((a,i)=>`
+              <div style="background:var(--bg-1); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px;">
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                  <input class="form-input" style="margin:0; flex:1.4;" placeholder="Ability name" value="${escapeHtml(a.name)}" oninput="window.__a_name(${i},this.value)">
+                  <select class="form-input" style="margin:0; flex:1;" onchange="window.__a_timing(${i},this.value)">
+                    ${['Passive','Once Per Turn','Once Per Battle','Command Ability','Hero Phase','Combat Phase'].map(t=>`<option ${a.timing===t?'selected':''}>${t}</option>`).join('')}
+                  </select>
+                  <span onclick="window.__a_remove(${i})" style="color:var(--danger); font-size:16px; padding:6px 4px; cursor:pointer;">✕</span>
+                </div>
+                <textarea class="form-input" style="min-height:50px; font-size:11px; margin-bottom:8px;" oninput="window.__a_text(${i},this.value)">${escapeHtml(a.text)}</textarea>
+
+                <div style="border-top:1px solid var(--line); padding-top:8px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div style="font-size:11px; color:var(--text-md);">Apply as dice calculator modifier?</div>
+                    <div class="toggle ${a._hasModifier?'on':''}" onclick="window.__a_toggleMod(${i})"><div class="toggle-knob"></div></div>
+                  </div>
+                  ${a._hasModifier ? `
+                    <div style="font-size:10px; color:var(--text-lo); margin:6px 0 8px 0; line-height:1.4;">
+                      Only for flat number effects (e.g. "+1 to hit while this unit has 5+ models"). Skip for heals, rerolls, or conditional triggers.
+                    </div>
+                    <div style="display:flex; gap:6px; margin-bottom:6px;">
+                      <select class="form-input" style="margin:0; flex:1.3;" onchange="window.__a_modStat(${i},this.value)">
+                        ${STAT_OPTIONS.map(([val,label])=>`<option value="${val}" ${a._mod.stat===val?'selected':''}>${label}</option>`).join('')}
+                      </select>
+                      <select class="form-input" style="margin:0; flex:1;" onchange="window.__a_modOp(${i},this.value)">
+                        <option value="add" ${a._mod.op==='add'?'selected':''}>Add</option>
+                        <option value="set" ${a._mod.op==='set'?'selected':''}>Set to</option>
+                      </select>
+                      <input class="calc-input" style="width:56px;" type="number" value="${a._mod.value}" oninput="window.__a_modValue(${i},this.value)">
+                    </div>
+                    <input class="form-input" style="margin:0;" placeholder="Chip label, e.g. '+1 to Hit'"
+                      value="${escapeHtml(a._mod.label)}" oninput="window.__a_modLabel(${i},this.value)">
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+            <div class="mini-btn" style="margin-bottom:16px;" onclick="window.__a_add()">+ Add Ability</div>
+
+            <div class="form-label">Keywords (comma-separated)</div>
+            <input class="form-input" placeholder="HERO, INFANTRY, BATTLELINE..." value="${escapeHtml(state.keywords)}" oninput="window.__u_keywords(this.value)">
+          </div>
+          <div class="form-create-btn" onclick="window.__saveUnit()">Save Unit</div>
+        </div>
+      </div>
+    `;
+  }
+
+  window.__u_name = v => state.name = v;
+  window.__u_points = v => state.points = v;
+  window.__u_move = v => state.move = v;
+  window.__u_health = v => state.health = v;
+  window.__u_save = v => state.save = v;
+  window.__u_ward = v => state.ward = v;
+  window.__u_control = v => state.control = v;
+  window.__u_keywords = v => state.keywords = v;
+  window.__w_name = (i,v) => state.weapons[i].name = v;
+  window.__w_attacks = (i,v) => state.weapons[i].attacks = v;
+  window.__w_toHit = (i,v) => state.weapons[i].toHit = parseInt(v)||null;
+  window.__w_toWound = (i,v) => state.weapons[i].toWound = parseInt(v)||null;
+  window.__w_rend = (i,v) => state.weapons[i].rend = parseInt(v)||0;
+  window.__w_damage = (i,v) => state.weapons[i].damage = v;
+  window.__w_add = () => {
+    state.weapons.push({name:'New Weapon', range:'1"', attacks:'1', toHit:4, toWound:4, rend:0, damage:'1', isMelee:true});
+    draw();
+  };
+  window.__a_name = (i,v) => state.abilities[i].name = v;
+  window.__a_timing = (i,v) => state.abilities[i].timing = v;
+  window.__a_text = (i,v) => state.abilities[i].text = v;
+  window.__a_remove = (i) => { state.abilities.splice(i,1); draw(); };
+  window.__a_add = () => {
+    state.abilities.push({ name:'New Ability', timing:'Passive', text:'', _hasModifier:false, _mod:{stat:'hit',op:'add',value:1,label:''} });
+    draw();
+  };
+  window.__a_toggleMod = i => {
+    const a = state.abilities[i];
+    a._hasModifier = !a._hasModifier;
+    if(a._hasModifier && !a._mod.label){
+      const sign = a._mod.op==='add' ? (a._mod.value>=0?'+':'') : 'Set to ';
+      a._mod.label = `${sign}${a._mod.value} ${a._mod.stat}`;
+    }
+    draw();
+  };
+  window.__a_modStat = (i,v) => { state.abilities[i]._mod.stat = v; draw(); };
+  window.__a_modOp = (i,v) => { state.abilities[i]._mod.op = v; draw(); };
+  window.__a_modValue = (i,v) => { state.abilities[i]._mod.value = parseInt(v)||0; };
+  window.__a_modLabel = (i,v) => { state.abilities[i]._mod.label = v; };
+  window.__saveUnit = () => {
+    const unit = {
+      name: state.name, faction,
+      points: parseInt(state.points)||0,
+      baseSize: 1, reinforceIncrement: null, maxModels: null,
+      stats: {
+        move: state.move || '5"',
+        health: parseInt(state.health)||1,
+        save: parseInt(state.save)||6,
+        ward: state.ward ? parseInt(state.ward) : null,
+        control: parseInt(state.control)||1
+      },
+      weapons: state.weapons,
+      abilities: state.abilities.map(a => {
+        const built = { name: a.name, timing: a.timing, text: a.text };
+        if (a._hasModifier) {
+          built.modifiers = [{
+            stat: a._mod.stat, op: a._mod.op, value: a._mod.value,
+            label: a._mod.label || `${a._mod.op==='add'?'+':'Set to '}${a._mod.value} ${a._mod.stat}`,
+            side: (a._mod.stat === 'save') ? 'defender' : undefined
+          }];
+        }
+        return built;
+      }),
+      keywords: state.keywords.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean),
+      silhouette: 'infantry', photo: null
+    };
+    if(onSaveBack){
+      onSaveBack(unit);
+    } else {
+      mergeByName(contentLibrary.units, [unit], u => u.name + '|' + u.faction);
+      saveContentLibrary();
+      closeSheet();
+      renderImport();
+    }
+  };
+  draw();
+}
+
+function extractedToUnit(extracted, faction){
+  return {
+    name: extracted.name || 'Unnamed Unit',
+    faction,
+    points: extracted.points || 0,
+    baseSize: 1, reinforceIncrement: null, maxModels: null,
+    stats: {
+      move: (extracted.stats && extracted.stats.move) || '5"',
+      health: (extracted.stats && extracted.stats.health) || 1,
+      save: (extracted.stats && extracted.stats.save) || 6,
+      ward: (extracted.stats && extracted.stats.ward) || null,
+      control: (extracted.stats && extracted.stats.control) || 1
+    },
+    weapons: extracted.weapons || [],
+    abilities: (extracted.abilities || []).map(t => ({name:'Ability', timing:'Passive', text:t})),
+    keywords: extracted.keywords && extracted.keywords.length ? extracted.keywords : ['IMPORTED'],
+    silhouette: 'infantry', photo: null
+  };
+}
+
+// ---- Rules review ----
+
+function renderRulesReview(data, fileName){
+  const excluded = new Set();
+  const sections = JSON.parse(JSON.stringify(data.sections));
+
+  function draw(){
+    sheetRoot.innerHTML = `
+      <div class="sheet-overlay show" id="pickerOverlay">
+        <div class="sheet" style="max-height:90%; height:90%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <div class="sheet-title">Review Rules</div>
+            <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+          </div>
+          <div class="sheet-body">
+            ${sections.map((s,i)=>`
+              <div style="background:var(--bg-1); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px; opacity:${excluded.has(i)?0.4:1};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span class="rule-phase">${escapeHtml(s.phase||'')}</span>
+                  <span onclick="window.__toggleSection(${i})" style="cursor:pointer;">${excluded.has(i)?'○ excluded':'● included'}</span>
+                </div>
+                <input class="form-input" style="margin-bottom:6px;" value="${escapeHtml(s.name||'')}" oninput="window.__s_name(${i},this.value)">
+                <textarea class="form-input" style="min-height:70px; font-size:11px;" oninput="window.__s_text(${i},this.value)">${escapeHtml(s.text||'')}</textarea>
+              </div>
+            `).join('')}
+          </div>
+          <div class="form-create-btn" onclick="window.__importRules()">Import ${sections.length - excluded.size} Section(s)</div>
+        </div>
+      </div>
+    `;
+  }
+  window.__toggleSection = i => { excluded.has(i) ? excluded.delete(i) : excluded.add(i); draw(); };
+  window.__s_name = (i,v) => sections[i].name = v;
+  window.__s_text = (i,v) => sections[i].text = v;
+  window.__importRules = () => {
+    const toImport = sections.filter((_,i)=>!excluded.has(i));
+    mergeByName(contentLibrary.ruleSections, toImport, s => s.name);
+    saveContentLibrary();
+    closeSheet();
+    renderImport();
+  };
+  draw();
+}
+
+// ---- Spell / Artifact lore table review ----
+
+function renderLoreReview(kind, data, fileName){
+  const excluded = new Set();
+  const items = JSON.parse(JSON.stringify(data.items));
+  const scope = { value: '' };
+  const isSpells = kind === 'spells';
+
+  // Each item can optionally carry one structured modifier — only meaningful
+  // for effects that are genuinely a flat hit/wound/rend/damage/save change.
+  // Most ability text (heals, rerolls, "ignore a wound", conditional
+  // triggers) isn't representable this way, so this defaults to off and
+  // stays off unless you deliberately turn it on for the items where it fits.
+  items.forEach(it => {
+    if (!it._hasModifier) it._hasModifier = false;
+    if (!it._mod) it._mod = { stat: 'hit', op: 'add', value: 1, label: '' };
+  });
+
+  const STAT_OPTIONS = isSpells
+    ? [['hit','To Hit'],['wound','To Wound'],['rend','Rend'],['damage','Damage'],['attacks','Attacks'],['save','Enemy/Target Save']]
+    : [['hit','To Hit'],['wound','To Wound'],['rend','Rend'],['damage','Damage'],['attacks','Attacks']];
+
+  function draw(){
+    sheetRoot.innerHTML = `
+      <div class="sheet-overlay show" id="pickerOverlay">
+        <div class="sheet" style="max-height:92%; height:92%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <div class="sheet-title">Review ${isSpells?'Spells':'Artifacts'}</div>
+            <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+          </div>
+          <div style="padding:10px 18px;">
+            <input class="form-input" placeholder="${isSpells?'Lore name (e.g. Lore of the Storm)':'Faction, or blank for Universal'}"
+              value="${escapeHtml(scope.value)}" oninput="window.__scopeEdit(this.value)">
+          </div>
+          <div class="sheet-body">
+            ${items.map((it,i)=>`
+              <div style="background:var(--bg-1); border:1px solid var(--line); border-radius:10px; padding:10px; margin-bottom:8px; opacity:${excluded.has(i)?0.4:1};">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <input class="form-input" style="margin:0; flex:1;" value="${escapeHtml(it.name||'')}" oninput="window.__i_name(${i},this.value)">
+                  <span onclick="window.__toggleItem(${i})" style="cursor:pointer; margin-left:8px;">${excluded.has(i)?'○':'●'}</span>
+                </div>
+                ${isSpells ? `<input class="calc-input" style="width:70px; margin-bottom:6px;" placeholder="CV" value="${it.castingValue ?? ''}" oninput="window.__i_cv(${i},this.value)">` : ''}
+                <textarea class="form-input" style="min-height:50px; font-size:11px; margin-bottom:8px;" oninput="window.__i_text(${i},this.value)">${escapeHtml(it.text||'')}</textarea>
+
+                <div style="border-top:1px solid var(--line); padding-top:8px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <div style="font-size:11px; color:var(--text-md);">Apply as dice calculator modifier?</div>
+                    <div class="toggle ${it._hasModifier?'on':''}" onclick="window.__i_toggleMod(${i})"><div class="toggle-knob"></div></div>
+                  </div>
+                  ${it._hasModifier ? `
+                    <div style="font-size:10px; color:var(--text-lo); margin:6px 0 8px 0; line-height:1.4;">
+                      Only turn this on if the effect is a flat number change (e.g. "+1 to hit," "add 1 Rend"). Skip it for heals, rerolls, or conditional triggers — those need to be read and applied by you.
+                    </div>
+                    <div style="display:flex; gap:6px; margin-bottom:6px;">
+                      <select class="form-input" style="margin:0; flex:1.3;" onchange="window.__i_modStat(${i},this.value)">
+                        ${STAT_OPTIONS.map(([val,label])=>`<option value="${val}" ${it._mod.stat===val?'selected':''}>${label}</option>`).join('')}
+                      </select>
+                      <select class="form-input" style="margin:0; flex:1;" onchange="window.__i_modOp(${i},this.value)">
+                        <option value="add" ${it._mod.op==='add'?'selected':''}>Add</option>
+                        <option value="set" ${it._mod.op==='set'?'selected':''}>Set to</option>
+                      </select>
+                      <input class="calc-input" style="width:56px;" type="number" value="${it._mod.value}" oninput="window.__i_modValue(${i},this.value)">
+                    </div>
+                    <input class="form-input" style="margin:0;" placeholder="Chip label, e.g. '+1 to Hit'"
+                      value="${escapeHtml(it._mod.label)}" oninput="window.__i_modLabel(${i},this.value)">
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="form-create-btn" onclick="window.__importLore()">Import ${items.length - excluded.size} Item(s)</div>
+        </div>
+      </div>
+    `;
+  }
+  window.__scopeEdit = v => scope.value = v;
+  window.__toggleItem = i => { excluded.has(i) ? excluded.delete(i) : excluded.add(i); draw(); };
+  window.__i_name = (i,v) => items[i].name = v;
+  window.__i_text = (i,v) => items[i].text = v;
+  window.__i_cv = (i,v) => items[i].castingValue = parseInt(v)||null;
+  window.__i_toggleMod = i => {
+    items[i]._hasModifier = !items[i]._hasModifier;
+    if(items[i]._hasModifier && !items[i]._mod.label){
+      // Reasonable default label so an empty field doesn't ship a blank chip
+      const sign = items[i]._mod.op==='add' ? (items[i]._mod.value>=0?'+':'') : 'Set to ';
+      items[i]._mod.label = `${sign}${items[i]._mod.value} ${items[i]._mod.stat}`;
+    }
+    draw();
+  };
+  window.__i_modStat = (i,v) => { items[i]._mod.stat = v; draw(); };
+  window.__i_modOp = (i,v) => { items[i]._mod.op = v; draw(); };
+  window.__i_modValue = (i,v) => { items[i]._mod.value = parseInt(v)||0; };
+  window.__i_modLabel = (i,v) => { items[i]._mod.label = v; };
+  window.__importLore = () => {
+    const toImport = items.filter((_,i)=>!excluded.has(i)).map(it => {
+      const built = {
+        name: it.name,
+        lore: scope.value || 'Universal',
+        isUniversal: !scope.value,
+        text: it.text || '',
+        castingValue: it.castingValue || 6
+      };
+      if (it._hasModifier) {
+        built.modifiers = [{
+          stat: it._mod.stat, op: it._mod.op, value: it._mod.value,
+          label: it._mod.label || `${it._mod.op==='add'?'+':'Set to '}${it._mod.value} ${it._mod.stat}`,
+          side: (it._mod.stat === 'save') ? 'defender' : undefined
+        }];
+      }
+      return built;
+    });
+    if(isSpells){
+      mergeByName(contentLibrary.spells, toImport, s => s.name);
+    } else {
+      mergeByName(contentLibrary.artifacts, toImport, a => a.name);
+    }
+    saveContentLibrary();
+    closeSheet();
+    renderImport();
+  };
+  draw();
+}
+
+/* ---------------- Unit Picker Sheet ---------------- */
+
+function openUnitPicker(){
+  const list = getActiveList();
+  const pool = [...UNITS, ...contentLibrary.units].filter(u => u.faction === list.faction);
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeSheet()">
+      <div class="sheet" style="max-height:80%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">Add Unit</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div class="search-bar" style="margin:12px 18px;">🔍 Search units…</div>
+        <div class="sheet-body">
+          ${pool.length === 0 ? `
+            <div class="empty-state">
+              <div class="glyph">📭</div>
+              <div class="title">No units for ${escapeHtml(list.faction)} yet</div>
+              <div class="sub">Import a battletome or warscroll from<br>the Import tab to add units here.</div>
+            </div>
+          ` : pool.map((u,i)=>`
+            <div class="pick-card" onclick="addUnitByIndex(${i})">
+              <div>
+                <div class="pick-name">${escapeHtml(u.name)}</div>
+                <div class="pick-sub">${(u.keywords||[]).join(' · ')}</div>
+              </div>
+              <div class="pick-pts">${u.points} pts</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  window.__unitPickerPool = pool;
+  requestAnimationFrame(()=>{
+    document.getElementById('pickerOverlay').classList.add('show');
+  });
+}
+function closeSheet(){
+  const el = document.getElementById('pickerOverlay');
+  if(el){ el.classList.remove('show'); setTimeout(()=>sheetRoot.innerHTML='', 250); }
+}
+function addUnit(id){
+  const list = getActiveList();
+  const unit = JSON.parse(JSON.stringify(UNITS.find(u=>u.id===id))); // fresh copy so photo edits don't leak across lists
+  list.entries.push({ unit, nickname:'', reinforcements:0, isGeneral: list.entries.length===0, artifact:null, spell:null });
+  closeSheet();
+  touchList(list);
+}
+function addUnitByIndex(i){
+  const list = getActiveList();
+  const source = window.__unitPickerPool[i];
+  const unit = JSON.parse(JSON.stringify(source));
+  list.entries.push({ unit, nickname:'', reinforcements:0, isGeneral: list.entries.length===0, artifact:null, spell:null });
+  closeSheet();
+  touchList(list);
+}
+function toggleGeneral(idx){
+  const list = getActiveList();
+  list.entries.forEach((e,i)=> e.isGeneral = (i===idx));
+  touchList(list);
+}
+function reinforce(idx){
+  const list = getActiveList();
+  const e = list.entries[idx];
+  const cap = e.unit.maxModels || Infinity;
+  const currentModels = e.unit.baseSize + e.reinforcements*(e.unit.reinforceIncrement||0);
+  if(currentModels + (e.unit.reinforceIncrement||0) <= cap){
+    e.reinforcements += 1;
+  }
+  touchList(list);
+}
+function removeEntry(idx){
+  const list = getActiveList();
+  list.entries.splice(idx,1);
+  touchList(list);
+}
+
+/* ---------------- Photo picker (user's own model photos) ---------------- */
+
+function openPhotoPicker(idx){
+  const list = getActiveList();
+  const entry = list.entries[idx];
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeSheet()">
+      <div class="sheet" style="max-height:50%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">Unit Photo</div>
+          <div class="sheet-close" onclick="closeSheet()">Done</div>
+        </div>
+        <div style="padding:4px 18px 8px 18px; font-size:11.5px; color:var(--text-lo); line-height:1.5;">
+          Attach a photo of your own model, or import your saved warscroll art from the full warscroll screen.
+        </div>
+        <div class="photo-picker-row">
+          <div class="photo-slot" onclick="clearUnitPhoto(${idx})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg>
+            Use Icon
+          </div>
+          <div class="photo-slot" onclick="document.getElementById('unitPhotoCameraInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            Camera
+          </div>
+          <div class="photo-slot" onclick="document.getElementById('unitPhotoLibraryInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M21 15l-5-5-9 9"/></svg>
+            Library
+          </div>
+        </div>
+        <input type="file" id="unitPhotoCameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleUnitPhotoUpload(${idx}, this.files[0])">
+        <input type="file" id="unitPhotoLibraryInput" accept="image/*" style="display:none" onchange="handleUnitPhotoUpload(${idx}, this.files[0])">
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay').classList.add('show'));
+}
+function clearUnitPhoto(idx){
+  const list = getActiveList();
+  list.entries[idx].unit.photo = null;
+  closeSheet();
+  touchList(list);
+}
+function handleUnitPhotoUpload(idx, file){
+  if(!file) return;
+  resizeImageFile(file, 900, (dataUrl) => {
+    if(!dataUrl){ alert('Could not read that image.'); return; }
+    const list = getActiveList();
+    list.entries[idx].unit.photo = dataUrl;
+    closeSheet();
+    touchList(list);
+  });
+}
+
+/* ---------------- Artifact picker ---------------- */
+
+function openArtifactPicker(idx){
+  const list = getActiveList();
+  const entry = list.entries[idx];
+  const faction = list.faction;
+  const options = ARTIFACTS.filter(a => a.isUniversal || a.lore === faction);
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeSheet()">
+      <div class="sheet" style="max-height:75%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">Artifact of Power</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div class="sheet-body">
+          ${entry.artifact ? `<div class="pick-card" onclick="setArtifact(${idx}, null)" style="border-color:var(--danger); text-align:center; color:var(--danger); font-weight:600; font-size:12.5px;">Remove Artifact</div>` : ''}
+          ${options.map(a=>`
+            <div class="pick-card wide" onclick="setArtifact(${idx}, '${a.id}')">
+              <div class="pick-top">
+                <div class="pick-name">${escapeHtml(a.name)}</div>
+              </div>
+              <span class="lore-tag ${a.isUniversal?'universal':''}">${escapeHtml(a.lore)}</span>
+              <div class="pick-text">${escapeHtml(a.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay').classList.add('show'));
+}
+function setArtifact(idx, artifactId){
+  const list = getActiveList();
+  const entry = list.entries[idx];
+  entry.artifact = artifactId ? ARTIFACTS.find(a=>a.id===artifactId) : null;
+  closeSheet();
+  touchList(list);
+}
+
+/* ---------------- Spell picker ---------------- */
+
+function openSpellPicker(idx){
+  const list = getActiveList();
+  const entry = list.entries[idx];
+  const faction = list.faction;
+  const options = SPELLS.filter(s => s.isUniversal || s.lore === faction);
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeSheet()">
+      <div class="sheet" style="max-height:75%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">Lore Spell</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div class="sheet-body">
+          ${entry.spell ? `<div class="pick-card" onclick="setSpell(${idx}, null)" style="border-color:var(--danger); text-align:center; color:var(--danger); font-weight:600; font-size:12.5px;">Remove Spell</div>` : ''}
+          ${options.map(s=>`
+            <div class="pick-card wide" onclick="setSpell(${idx}, '${s.id}')">
+              <div class="pick-top">
+                <div class="pick-name">${escapeHtml(s.name)}</div>
+                <span class="cv-badge">${s.castingValue}+</span>
+              </div>
+              <span class="lore-tag ${s.isUniversal?'universal':''}">${escapeHtml(s.lore)}</span>
+              <div class="pick-text">${escapeHtml(s.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay').classList.add('show'));
+}
+function setSpell(idx, spellId){
+  const list = getActiveList();
+  const entry = list.entries[idx];
+  entry.spell = spellId ? SPELLS.find(s=>s.id===spellId) : null;
+  closeSheet();
+  touchList(list);
+}
+
+/* ---------------- Full warscroll detail ---------------- */
+
+function openWarscroll(idx){
+  const list = getActiveList();
+  const entry = list.entries[idx];
+  const u = entry.unit;
+  const heroStyle = u.photo ? `style="background-image:url('${u.photo.replace(/'/g,"\\'")}')"` : '';
+
+  const weaponRows = u.weapons.map(w => `
+    <div class="ws-table-row">
+      <div class="wcol-name">${escapeHtml(w.name)}</div>
+      <div class="wcol">${w.attacks}</div>
+      <div class="wcol">${w.toHit}+</div>
+      <div class="wcol">${w.toWound}+</div>
+      <div class="wcol">${w.rend ? '-'+w.rend : '-'}</div>
+      <div class="wcol">${w.damage}</div>
+    </div>
+  `).join('');
+
+  const abilityCards = (u.abilities || DEFAULT_ABILITIES(u)).map(a => `
+    <div class="ws-ability">
+      <div class="ws-ability-top">
+        <div class="ws-ability-name">${escapeHtml(a.name)}</div>
+        <div class="ws-ability-timing">${escapeHtml(a.timing)}</div>
+      </div>
+      <div class="ws-ability-text">${escapeHtml(a.text)}</div>
+    </div>
+  `).join('');
+
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay" id="pickerOverlay" onclick="if(event.target===this) closeSheet()">
+      <div class="sheet" style="max-height:94%; height:94%;">
+        <div class="ws-hero ${u.photo?'has-art':''}" ${heroStyle}>
+          <div class="ws-back" onclick="closeSheet()">✕</div>
+          <div class="ws-hero-glyph">${SILHOUETTES[u.silhouette] || ''}</div>
+          <div class="ws-hero-content">
+            <div class="ws-faction">${escapeHtml(u.faction)}</div>
+            <div class="ws-name">${escapeHtml(u.name)}</div>
+            <div class="ws-pts">${u.points} points · ${u.keywords.join(' · ')}</div>
+          </div>
+        </div>
+        <div class="ws-body">
+          <div class="ws-statblock">
+            <div class="ws-stat"><div class="v">${u.stats.move}</div><div class="l">Move</div></div>
+            <div class="ws-stat"><div class="v">${u.stats.health}</div><div class="l">Wounds</div></div>
+            <div class="ws-stat"><div class="v">${u.stats.save}+</div><div class="l">Save</div></div>
+            <div class="ws-stat"><div class="v">${u.stats.ward ? u.stats.ward+'+' : '-'}</div><div class="l">Ward</div></div>
+            <div class="ws-stat"><div class="v">${u.stats.control}</div><div class="l">Control</div></div>
+          </div>
+
+          <div class="ws-section-title">Weapons</div>
+          <div class="ws-table">
+            <div class="ws-table-head">
+              <div class="wcol-name">Name</div><div class="wcol">Atk</div><div class="wcol">Hit</div><div class="wcol">Wnd</div><div class="wcol">Rnd</div><div class="wcol">Dmg</div>
+            </div>
+            ${weaponRows}
+          </div>
+
+          <div class="ws-section-title">Abilities</div>
+          ${abilityCards}
+
+          <div class="ws-section-title">Warscroll Art</div>
+          <div class="ws-import-box">
+            <div class="ws-import-note">Import your own export of the official GW warscroll (screenshot from the warscroll PDF, or a photo of the physical card) for personal reference. Stored only on this device — never fetched or shared by the app.</div>
+            <div class="ws-import-btn" onclick="document.getElementById('warscrollArtInput_${idx}').click()">⬇ Import Warscroll Image</div>
+            <input type="file" id="warscrollArtInput_${idx}" accept="image/*" style="display:none" onchange="handleWarscrollArtUpload(${idx}, this.files[0])">
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay').classList.add('show'));
+}
+function handleWarscrollArtUpload(idx, file){
+  if(!file) return;
+  resizeImageFile(file, 1200, (dataUrl) => {
+    if(!dataUrl){ alert('Could not read that image.'); return; }
+    const list = getActiveList();
+    list.entries[idx].unit.photo = dataUrl;
+    touchList(list);
+    openWarscroll(idx);
+  });
+}
+
+// A couple of default ability entries for units in the sample set that
+// don't otherwise carry an .abilities array in this mock's UNITS data.
+function DEFAULT_ABILITIES(u){
+  return [
+    { name:'Shield Wall', timing:'Passive', text:'While this unit has 5+ models, models in this unit have a Ward of 6+ against ranged attacks.' }
+  ];
+}
+
+/* ---------------- Calc state ---------------- */
+let calcState = {
+  attacks:'10', toHit:3, toWound:3, rend:1, damage:'1',
+  targetSave:4, hasWard:false, targetWard:5, hitMod:0, woundMod:0,
+  // Which weapon/unit is currently driving the attacker fields, if any —
+  // null means "manual entry" (the original behavior). Storing name strings
+  // rather than object refs so this survives JSON serialization cleanly if
+  // we ever persist the last-used calc setup.
+  attackerUnitName: null, attackerWeaponName: null,
+  defenderUnitName: null,
+  // Set when the attacker/defender was pulled from a specific saved-list
+  // entry rather than the generic content library — lets the picker show
+  // that entry's nickname, and surfaces its assigned artifact/spell (if
+  // any) as an available modifier automatically.
+  attackerListId: null, attackerEntryId: null,
+  defenderListId: null, defenderEntryId: null,
+  // Modifier chips currently toggled on. Each is a full modifier object
+  // (stat/op/value/label) plus a source tag so duplicates from re-picking
+  // the same unit don't stack silently.
+  activeModifiers: [],
+  // Values for the generic situational toggles (charge/musician/etc),
+  // keyed by SITUATIONAL_MODIFIER_DEFAULTS[].key. Persisted across sessions
+  // per your note that this should remember your usual combo.
+  situational: storageLoad('calcSituational', {})
+};
+function saveSituationalDefaults(){
+  storageSave('calcSituational', calcState.situational);
+}
+
+// ---- Loadout comparison ----
+//
+// Rather than doubling every input field on a phone-sized screen at once,
+// comparison works as a snapshot: configure the attacker normally (weapon
+// choice, modifiers, situational toggles all apply), tap "Save as Loadout
+// A", then change the attacker to whatever you want to compare (a different
+// weapon option, a different unit, manual numbers) and the comparison card
+// shows both results side by side against the same defender.
+let compareLoadoutA = null; // snapshot of {attackerUnitName, attackerWeaponName, input, result}
+let compareMode = false;
+
+function toggleCompareMode(){
+  compareMode = !compareMode;
+  if(!compareMode) compareLoadoutA = null;
+  renderCalc();
+}
+function commitLoadoutA(){
+  const s = calcState;
+  const baseInput = {
+    attacks: parseDiceAverage(s.attacks),
+    toHit: s.toHit, toWound: s.toWound, rend: s.rend,
+    damage: parseDiceAverage(s.damage),
+    targetSave: s.targetSave,
+    targetWard: s.hasWard ? s.targetWard : null,
+    hitMod: s.hitMod, woundMod: s.woundMod
+  };
+  const situationalActive = SITUATIONAL_MODIFIER_DEFAULTS
+    .filter(def => (s.situational[def.key] || 0) !== 0)
+    .map(def => ({ ...def, value: s.situational[def.key] }));
+  const allActiveMods = [...s.activeModifiers, ...situationalActive];
+  const input = applyModifiers(baseInput, allActiveMods);
+  const result = calculate(input);
+
+  compareLoadoutA = {
+    label: s.attackerUnitName ? `${s.attackerUnitName}${s.attackerWeaponName ? ' — ' + s.attackerWeaponName : ''}` : 'Manual Loadout A',
+    result
+  };
+  renderCalc();
+}
+function clearLoadoutA(){
+  compareLoadoutA = null;
+  renderCalc();
+}
+function stepCalc(key, delta){
+  const bounds = {
+    toHit:[2,6], toWound:[2,6], rend:[0,4], targetSave:[2,7],
+    targetWard:[2,6], hitMod:[-2,2], woundMod:[-2,2]
+  };
+  const [min,max] = bounds[key];
+  calcState[key] = Math.max(min, Math.min(max, calcState[key]+delta));
+  // Manually nudging a stat that a picked weapon/unit supplied means the
+  // person is now overriding it — drop the "linked" label rather than
+  // silently keep showing a unit name next to numbers that no longer match it.
+  if(['toHit','toWound','rend','damage'].includes(key)) calcState.attackerWeaponName = null;
+  if(key==='targetSave' || key==='targetWard') calcState.defenderUnitName = null;
+  renderCalc();
+}
+
+/* ---- Unit-driven attacker/defender pickers for the dice calculator ---- */
+
+function allCalcUnits(){
+  return [...UNITS, ...contentLibrary.units];
+}
+function calcFactions(){
+  return Array.from(new Set(allCalcUnits().map(u=>u.faction))).sort();
+}
+
+function openAttackerUnitPicker(){
+  renderCalcSourceSheet('attacker');
+}
+function openDefenderUnitPicker(){
+  renderCalcSourceSheet('defender');
+}
+
+// First step: choose whether to pull from a specific saved list (real
+// nickname, real loadout, real assigned artifact/spell) or browse the
+// generic content library (any unit you've imported, no list context).
+function renderCalcSourceSheet(mode){
+  const listsWithEntries = savedLists.filter(l => l.entries.length > 0);
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay show" id="pickerOverlay">
+      <div class="sheet" style="max-height:75%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">Choose ${mode === 'attacker' ? 'Attacker' : 'Defender'}</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div class="sheet-body">
+          <div class="ws-section-title" style="padding-left:0;">From a Saved List</div>
+          ${listsWithEntries.length === 0
+            ? `<div style="font-size:11.5px; color:var(--text-lo); padding:0 2px 14px 2px;">No saved lists with units yet.</div>`
+            : listsWithEntries.map((l,i) => `
+                <div class="pick-card" onclick="window.__calcPickList(${i})">
+                  <div>
+                    <div class="pick-name">${escapeHtml(l.name)}</div>
+                    <div class="pick-sub">${escapeHtml(l.faction)} · ${l.entries.length} unit(s)</div>
+                  </div>
+                </div>
+              `).join('')
+          }
+          <div class="ws-section-title" style="padding-left:0;">From Content Library</div>
+          <div class="pick-card" onclick="window.__calcBrowseLibrary()">
+            <div class="pick-name">Browse by Faction →</div>
+            <div class="pick-sub">Any imported unit, no list context</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay')?.classList.add('show'));
+
+  window.__calcPickList = (i) => {
+    renderCalcListEntrySheet(listsWithEntries[i], mode);
+  };
+  window.__calcBrowseLibrary = () => {
+    renderCalcPickerSheet({ title: 'Choose Faction', step: 'faction', mode });
+  };
+}
+
+// Step for picking which entry within a chosen saved list — shows the
+// real nickname and flags whether it's carrying an artifact/spell.
+function renderCalcListEntrySheet(list, mode){
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay show" id="pickerOverlay">
+      <div class="sheet" style="max-height:75%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">${escapeHtml(list.name)}</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div class="sheet-body">
+          ${list.entries.map((e,i) => {
+            const displayName = (e.nickname && e.nickname.trim()) ? e.nickname.trim() : e.unit.name;
+            const tags = [];
+            if(e.isGeneral) tags.push('General');
+            if(e.artifact) tags.push('🔸 ' + e.artifact.name);
+            if(e.spell) tags.push('✦ ' + e.spell.name);
+            return `
+              <div class="pick-card" onclick="window.__calcPickEntry(${i})">
+                <div>
+                  <div class="pick-name">${escapeHtml(displayName)}</div>
+                  <div class="pick-sub">${escapeHtml(e.unit.name)}${tags.length ? ' · ' + tags.map(escapeHtml).join(' · ') : ''}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay')?.classList.add('show'));
+
+  window.__calcPickEntry = (entryIndex) => {
+    const entry = list.entries[entryIndex];
+    const displayName = (entry.nickname && entry.nickname.trim()) ? entry.nickname.trim() : entry.unit.name;
+
+    if(mode === 'defender'){
+      calcState.targetSave = entry.unit.stats.save;
+      calcState.hasWard = !!entry.unit.stats.ward;
+      calcState.targetWard = entry.unit.stats.ward || 5;
+      calcState.defenderUnitName = displayName;
+      calcState.defenderListId = list.id;
+      calcState.defenderEntryId = entry.id;
+      // Drop any previously-active defender-side modifiers from a different
+      // unit, then auto-offer this entry's own artifact/spell if it has one
+      // with structured modifiers — offered, not silently forced on, since
+      // you may be checking this unit's stats without that buff active.
+      calcState.activeModifiers = calcState.activeModifiers.filter(m => m.side !== 'defender-entry');
+      closeSheet();
+      renderCalc();
+    } else {
+      // Attacker still needs a weapon choice
+      renderCalcWeaponSheetForEntry(entry, displayName, list);
+    }
+  };
+}
+
+function renderCalcWeaponSheetForEntry(entry, displayName, list){
+  const unit = entry.unit;
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay show" id="pickerOverlay">
+      <div class="sheet" style="max-height:75%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">${escapeHtml(displayName)}</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div class="sheet-body">
+          ${(unit.weapons||[]).length === 0
+            ? `<div class="empty-state"><div class="glyph">⚔️</div><div class="title">No weapons on this unit</div></div>`
+            : unit.weapons.map((w,i) => `
+                <div class="pick-card" onclick="window.__calcPickEntryWeapon(${i})">
+                  <div>
+                    <div class="pick-name">${escapeHtml(w.name)}</div>
+                    <div class="pick-sub">${w.attacks} atk · ${w.toHit}+/${w.toWound}+ · Rend ${w.rend||0} · ${w.damage} dmg</div>
+                  </div>
+                </div>
+              `).join('')
+          }
+        </div>
+      </div>
+    </div>
+  `;
+  requestAnimationFrame(()=> document.getElementById('pickerOverlay')?.classList.add('show'));
+
+  window.__calcPickEntryWeapon = (weaponIndex) => {
+    const weapon = unit.weapons[weaponIndex];
+    calcState.attacks = String(weapon.attacks ?? '1');
+    calcState.toHit = weapon.toHit || 4;
+    calcState.toWound = weapon.toWound || 4;
+    calcState.rend = weapon.rend || 0;
+    calcState.damage = String(weapon.damage ?? '1');
+    calcState.attackerUnitName = displayName;
+    calcState.attackerWeaponName = weapon.name;
+    calcState.attackerListId = list.id;
+    calcState.attackerEntryId = entry.id;
+    // Clear out any stale attacker-entry modifiers from a previous unit,
+    // then auto-apply this entry's assigned artifact/spell IF it carries a
+    // structured modifier — this is the "pull loadout + apply spell
+    // effects" behavior, scoped to effects we can represent reliably.
+    calcState.activeModifiers = calcState.activeModifiers.filter(m => m.side !== 'attacker-entry');
+    const autoMods = [];
+    if(entry.artifact && entry.artifact.modifiers){
+      entry.artifact.modifiers.forEach(m => autoMods.push({...m, side:'attacker-entry', source: entry.artifact.name}));
+    }
+    if(entry.spell && entry.spell.modifiers){
+      entry.spell.modifiers.forEach(m => autoMods.push({...m, side:'attacker-entry', source: entry.spell.name}));
+    }
+    calcState.activeModifiers.push(...autoMods);
+    closeSheet();
+    renderCalc();
+  };
+}
+
+// Single sheet renderer that walks Faction → Unit → (Weapon, attacker only).
+// Kept as one function with a `step` flag rather than three separate sheets
+// so the back-navigation and styling stay consistent. Used for the generic
+// "Content Library" path (no specific saved-list entry attached).
+function renderCalcPickerSheet(opts){
+  let bodyHtml = '';
+  const factions = calcFactions(); // stable order used for index lookups below
+
+  if(opts.step === 'faction'){
+    bodyHtml = factions.length === 0
+      ? `<div class="empty-state"><div class="glyph">📭</div><div class="title">No units yet</div><div class="sub">Import a battletome from the<br>Import tab first.</div></div>`
+      : factions.map((f,i) => `
+          <div class="pick-card" onclick="window.__calcPickFaction(${i})">
+            <div class="pick-name">${escapeHtml(f)}</div>
+            <div class="pick-sub">${allCalcUnits().filter(u=>u.faction===f).length} unit(s)</div>
+          </div>
+        `).join('');
+  } else if(opts.step === 'unit'){
+    const units = allCalcUnits().filter(u => u.faction === opts.faction);
+    bodyHtml = units.map((u,i) => `
+      <div class="pick-card" onclick="window.__calcPickUnit(${i})">
+        <div>
+          <div class="pick-name">${escapeHtml(u.name)}</div>
+          <div class="pick-sub">Save ${u.stats.save}+${u.stats.ward?(' · Ward '+u.stats.ward+'+'):''}${opts.mode==='attacker' ? ' · '+(u.weapons||[]).length+' weapon(s)' : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  } else if(opts.step === 'weapon'){
+    const unit = opts.unit;
+    bodyHtml = (unit.weapons||[]).length === 0
+      ? `<div class="empty-state"><div class="glyph">⚔️</div><div class="title">No weapons on this unit</div></div>`
+      : unit.weapons.map((w,i) => `
+          <div class="pick-card" onclick="window.__calcPickWeapon(${i})">
+            <div>
+              <div class="pick-name">${escapeHtml(w.name)}</div>
+              <div class="pick-sub">${w.attacks} atk · ${w.toHit}+/${w.toWound}+ · Rend ${w.rend||0} · ${w.damage} dmg</div>
+            </div>
+          </div>
+        `).join('');
+  }
+
+  sheetRoot.innerHTML = `
+    <div class="sheet-overlay show" id="pickerOverlay">
+      <div class="sheet" style="max-height:75%">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+          <div class="sheet-title">${escapeHtml(opts.title)}</div>
+          <div class="sheet-close" onclick="closeSheet()">Cancel</div>
+        </div>
+        <div class="sheet-body">${bodyHtml}</div>
+      </div>
+    </div>
+  `;
+
+  window.__calcPickFaction = (i) => {
+    const faction = factions[i];
+    renderCalcPickerSheet({ title: faction, step:'unit', faction, mode: opts.mode });
+  };
+
+  window.__calcPickUnit = (unitIndex) => {
+    const units = allCalcUnits().filter(u => u.faction === opts.faction);
+    const unit = units[unitIndex];
+    if(opts.mode === 'defender'){
+      calcState.targetSave = unit.stats.save;
+      calcState.hasWard = !!unit.stats.ward;
+      calcState.targetWard = unit.stats.ward || 5;
+      calcState.defenderUnitName = unit.name;
+      calcState.defenderListId = null;
+      calcState.defenderEntryId = null;
+      calcState.activeModifiers = calcState.activeModifiers.filter(m => m.side !== 'defender-entry');
+      closeSheet();
+      renderCalc();
+    } else {
+      // Attacker needs a weapon next
+      renderCalcPickerSheet({ title: unit.name, step:'weapon', unit, faction: opts.faction, mode: opts.mode });
+    }
+  };
+
+  window.__calcPickWeapon = (weaponIndex) => {
+    const weapon = opts.unit.weapons[weaponIndex];
+    calcState.attacks = String(weapon.attacks ?? '1');
+    calcState.toHit = weapon.toHit || 4;
+    calcState.toWound = weapon.toWound || 4;
+    calcState.rend = weapon.rend || 0;
+    calcState.damage = String(weapon.damage ?? '1');
+    calcState.attackerUnitName = opts.unit.name;
+    calcState.attackerWeaponName = weapon.name;
+    calcState.attackerListId = null;
+    calcState.attackerEntryId = null;
+    calcState.activeModifiers = calcState.activeModifiers.filter(m => m.side !== 'attacker-entry');
+    closeSheet();
+    renderCalc();
+  };
+}
+function clearAttackerLink(){
+  calcState.attackerUnitName = null;
+  calcState.attackerWeaponName = null;
+  calcState.attackerListId = null;
+  calcState.attackerEntryId = null;
+  calcState.activeModifiers = calcState.activeModifiers.filter(m => m.side !== 'attacker-entry');
+  renderCalc();
+}
+function clearDefenderLink(){
+  calcState.defenderUnitName = null;
+  calcState.defenderListId = null;
+  calcState.defenderEntryId = null;
+  calcState.activeModifiers = calcState.activeModifiers.filter(m => m.side !== 'defender-entry');
+  renderCalc();
+}
+
+/* ---------------- Tab switching ---------------- */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    const wasBuilder = currentTab === 'builder' && !activeListId;
+    if(tab.dataset.tab === 'builder' && wasBuilder) activeListId = null; // pop-to-root on re-tap
+    switchTab(tab.dataset.tab);
+  });
+});
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* First-launch seeding: only runs if nothing has ever been saved to this
+   device before, so re-opening the installed app never duplicates or
+   resets your real lists. Once you've saved/deleted anything for real,
+   this block is permanently skipped (a 'warscroll.hasLaunched' flag). */
+const hasLaunchedBefore = storageLoad('hasLaunched', false);
+
+if (!hasLaunchedBefore) {
+  const seedList = {
+    id: makeId(),
+    name: 'Stormhost Vanguard',
+    faction: 'Stormcast Eternals',
+    pointsLimit: 2000,
+    entries: [
+      { unit: JSON.parse(JSON.stringify(UNITS[0])), nickname:'', reinforcements:1, isGeneral:false, artifact:null, spell:null },
+      { unit: JSON.parse(JSON.stringify(UNITS[1])), nickname:'Sir Aldric', reinforcements:0, isGeneral:true, artifact: ARTIFACTS[2], spell:null },
+      { unit: JSON.parse(JSON.stringify(UNITS[3])), nickname:'', reinforcements:0, isGeneral:false, artifact:null, spell: SPELLS[2] }
+    ],
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now() - 3600000
+  };
+  const seedList2 = {
+    id: makeId(),
+    name: 'Grand Tournament List',
+    faction: 'Stormcast Eternals',
+    pointsLimit: 2000,
+    entries: [
+      { unit: JSON.parse(JSON.stringify(UNITS[2])), nickname:'', reinforcements:1, isGeneral:false, artifact:null, spell:null }
+    ],
+    createdAt: Date.now() - 172800000,
+    updatedAt: Date.now() - 172800000
+  };
+  savedLists.push(seedList, seedList2);
+  homeArtPool.push(
+    'linear-gradient(160deg,#3a2a10,#150d05)',
+    'linear-gradient(160deg,#2a1010,#0a0505)'
+  );
+  storageSave('savedLists', savedLists);
+  storageSave('homeArtPool', homeArtPool);
+  storageSave('hasLaunched', true);
+}
+
+pickHeroArt();
+
+// Register the service worker so the app shell is cached for offline launch
+// from the Home Screen icon. Safe no-op if served over plain http/file://
+// during local testing — service workers require https or localhost.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.log('Service worker registration skipped:', err.message);
+    });
+  });
+}
+
+render();
+</script>
+</body>
+</html>
