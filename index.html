@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>Warscroll Companion</title>
 
 <!-- PWA / Add-to-Home-Screen configuration -->
@@ -903,6 +903,39 @@
   .nav-menu-footer{
     padding: 16px 20px 26px 20px;
     font-size:10.5px; color: var(--text-lo); line-height:1.5;
+  }
+
+  /* ---- Real-device mode ----
+     The .phone/.notch/.statusbar frame exists only to make the app look
+     right when viewed inside a desktop browser (no real phone chrome
+     around it). On an actual phone — either Safari on a narrow screen, or
+     installed to the Home Screen as a PWA — that frame becomes a second,
+     fake phone drawn inside the real one. This block (placed last so it
+     wins the cascade against the equal-specificity rules defined earlier)
+     removes the faux bezel/notch/status-bar, letting the real content fill
+     the real viewport and use the device's own safe-area insets (notch,
+     Dynamic Island, home indicator) instead of drawing fake ones. Two
+     separate @media blocks, rather than one with "or", for broader Safari
+     version compatibility. */
+  @media (max-width: 600px) {
+    body{ padding:0; }
+    .phone{
+      width:100vw; height:100vh; height:100dvh;
+      border:none; border-radius:0; box-shadow:none;
+    }
+    .notch, .statusbar{ display:none; }
+    .navheader, .home-top-row{ padding-top: calc(6px + env(safe-area-inset-top)); }
+    .tabbar{ padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
+  }
+  @media (display-mode: standalone){
+    body{ padding:0; }
+    .phone{
+      width:100vw; height:100vh; height:100dvh;
+      border:none; border-radius:0; box-shadow:none;
+    }
+    .notch, .statusbar{ display:none; }
+    .navheader, .home-top-row{ padding-top: calc(6px + env(safe-area-inset-top)); }
+    .tabbar{ padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
   }
 </style>
 </head>
