@@ -116,7 +116,13 @@ Two things worth knowing:
 
 ## Updating the app later
 
-If I make further changes to `index.html`, just re-upload the new version to
-whichever host you chose (same filename, same location) — the service worker
-will detect the change and cache the new version automatically next time you
-open the app (may take one extra launch to fully refresh).
+Re-upload the changed files to the same GitHub repo (same filenames, same
+location) and wait about a minute for Pages to redeploy. The service worker
+now fetches fresh files whenever you're online, so the next time you open
+the app (you may need to close and reopen it once) you get the new version.
+It only falls back to its saved copy when offline.
+
+If the app ever seems stuck on an old version, bump the version number in
+`sw.js` (`warscroll-companion-v2` -> `v3`), re-upload it, and reopen the app.
+Your lists and imported content are NOT affected by app updates - they live
+in your phone's storage, separate from the app files.

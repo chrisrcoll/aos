@@ -3038,8 +3038,10 @@ function extractedToUnit(extracted, faction){
       control: (extracted.stats && extracted.stats.control) || 1
     },
     weapons: extracted.weapons || [],
-    abilities: (extracted.abilities || []).map(t => ({name:'Ability', timing:'Passive', text:t})),
-    keywords: extracted.keywords && extracted.keywords.length ? extracted.keywords : ['IMPORTED'],
+    abilities: (extracted.abilities || []).map(a => (typeof a === 'string')
+      ? ({name:'Ability', timing:'Passive', text:a})
+      : ({name:a.name || 'Ability', timing:a.timing || 'Passive', text:a.text || '', ...(a.modifiers ? {modifiers:a.modifiers} : {})})),
+    keywords: extracted.keywords && extracted.keywords.length ? extracted.keywords.map(k => String(k).toUpperCase()) : ['IMPORTED'],
     silhouette: 'infantry', photo: null
   };
 }
